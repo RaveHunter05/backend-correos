@@ -1,11 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using correos_backend.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
-public class CorreosContext : DbContext
+public class CorreosContext : IdentityDbContext<ApplicationUser>
 {
 	public CorreosContext (DbContextOptions<CorreosContext> options) : base(options)
 	{
 	}
-
-	public DbSet<Users> Users {get; set;} 
 }
