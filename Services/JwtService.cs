@@ -14,17 +14,17 @@ public class JwtService
 		_configuration = configuration;
 	}
 
-	public async Task<string> GenerateToken(string userEmail)
+	public async Task<string> GenerateToken(string userId, string userEmail)
 	{
 		var claims = new[]
 		{
+			new Claim(ClaimTypes.NameIdentifier, userId),
 			new Claim(ClaimTypes.Email, userEmail),
-			    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
 				    // Add additional claims as needed
 		};
 
-		var jwtSettings = _configuration.GetSection("JwtSettings");
-		var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]));
+		var jwtSettings = _configuration.GetSection("JWT");
+		var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]));
 		var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 		var expires = DateTime.Now.AddMinutes(Convert.ToDouble(jwtSettings["TokenLifetime"]));
 

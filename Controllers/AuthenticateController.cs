@@ -37,12 +37,12 @@ public class AuthenticateController : ControllerBase
 	{
 		if (ModelState.IsValid)
 		{
-			var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, false, lockoutOnFailure: false);
+			var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, false, false);
 
 			if(result.Succeeded)
 			{
 				var user = await _userManager.FindByEmailAsync(model.Email);
-				var token = await _jwtService.GenerateToken(model.Email);
+				var token = await _jwtService.GenerateToken(user.Id, user.Email);
 				return Ok(new {token});
 			}
 		}
@@ -63,9 +63,11 @@ public class AuthenticateController : ControllerBase
 			      UserName = model.Username
 		};
 		var result = await _userManager.CreateAsync(user, model.Password);
-		if (!result.Succeeded)
-			return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed! Please check user details and try again." });
+		if (result.Succeeded)
+		{
+			return Ok(new Response { Status = "Success", Message = "User created successfully!" });
+		}
+		return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed! Please check user details and try again." });
 
-		return Ok(new Response { Status = "Success", Message = "User created successfully!" });
 	}
 }

@@ -4,6 +4,9 @@ namespace correos_backend.Authentication
 {
 	public class LoginModel
 	{
+		[Required(ErrorMessage = "User Name is required")]
+		public string Username {get; set;}
+
 		[Required(ErrorMessage = "Email is required")]
 		public string Email {get; set;}
 
