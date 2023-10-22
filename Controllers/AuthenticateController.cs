@@ -43,10 +43,12 @@ public class AuthenticateController : ControllerBase
 			{
 				var user = await _userManager.FindByEmailAsync(model.Email);
 				var token = await _jwtService.GenerateToken(user.Id, user.Email);
-				return Ok(new {token});
+				return Ok(new {token, user});
 			}
+			return Unauthorized();
+
 		}
-		return Unauthorized();
+		return BadRequest(ModelState);
 	}
 
 	[HttpPost]
