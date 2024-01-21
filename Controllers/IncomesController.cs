@@ -118,5 +118,12 @@ namespace correos_backend.Controllers
         {
             return (_context.Incomes?.Any(e => e.IncomeId == id)).GetValueOrDefault();
         }
+
+        //INFO TABLE: api/income
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Getdashboard(int id)
+        {
+            
+        }
     }
 }
