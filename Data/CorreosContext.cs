@@ -7,8 +7,6 @@ public class CorreosContext : IdentityDbContext<ApplicationUser>
 	{
 	}
 
-	public DbSet<Income> Incomes {get; set;}
-	public DbSet<Expense> Expenses {get; set;}
 	public DbSet<Spent> Spents {get; set;}
 	public DbSet<Service> Services {get; set;}
 	public DbSet<CostCenter> CostCenters {get; set;}
@@ -39,4 +37,7 @@ public class CorreosContext : IdentityDbContext<ApplicationUser>
 
 		base.OnModelCreating(modelBuilder);
 	}
+
+	public DbSet<Income> Incomes {get; set;}
+	public DbSet<Expense> Expenses {get; set;}
 }

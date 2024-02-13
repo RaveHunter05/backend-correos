@@ -6,5 +6,5 @@ public class Service
 	public string Name {get; set;}
 	public DateTime Date {get; set;}
 
-	public ICollection<Income>? Incomes {get; set;}
+	public ICollection<Income> Incomes {get; set;} = new List<Income>();
 }

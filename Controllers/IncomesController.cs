@@ -27,7 +27,7 @@ namespace correos_backend.Controllers
 			{
 				return NotFound();
 			}
-			return await _context.Incomes.ToListAsync();
+			return await _context.Incomes.Include(s => s.Service).Include(n => n.CostCenter).ToListAsync();
 		}
 
 		// GET: api/Incomes/5
@@ -56,7 +56,7 @@ namespace correos_backend.Controllers
 
 			if (!string.IsNullOrEmpty(service))
 			{
-				query = query.Include(i => i.Service).Where(entity => entity.Service.Name!.Contains(service));
+				query = query.Include(i => i.Service).Where(entity => entity.Service!.Name.Contains(service));
 			}
 
 			return await query.ToListAsync();

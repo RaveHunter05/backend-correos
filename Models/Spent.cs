@@ -6,5 +6,5 @@ public class Spent
 	public string Denomination {get; set;}
 	public DateTime Date {get; set;}
 
-	public ICollection<Expense> Expenses {get; set;}
+	public ICollection<Expense> Expenses {get;} = new List<Expense>();
 }

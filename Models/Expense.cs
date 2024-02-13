@@ -9,6 +9,7 @@ public class Expense
 	// keys
 	public int SpentId {get; set;}
 	public int CostCenterId {get; set;}
-	public Spent Spent {get; set;}
-	public CostCenter CostCenter {get; set;}
+
+	public Spent? Spent {get;}
+	public CostCenter? CostCenter {get;}
 }

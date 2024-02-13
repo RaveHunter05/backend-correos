@@ -8,6 +8,7 @@ public class Income
 	// keys
 	public int ServiceId {get; set;}
 	public int CostCenterId {get; set;}
-	public Service Service {get; set;}
-	public CostCenter CostCenter {get; set;}
+
+	public Service? Service {get;}
+	public CostCenter? CostCenter {get;}
 }
