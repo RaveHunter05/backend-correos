@@ -8,115 +8,129 @@ using Microsoft.EntityFrameworkCore;
 
 namespace correos_backend.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class CostCentersController : ControllerBase
-    {
-        private readonly CorreosContext _context;
+	[Route("api/[controller]")]
+	[ApiController]
+	public class CostCentersController : ControllerBase
+	{
+		private readonly CorreosContext _context;
 
-        public CostCentersController(CorreosContext context)
-        {
-            _context = context;
-        }
+		public CostCentersController(CorreosContext context)
+		{
+			_context = context;
+		}
 
-        // GET: api/CostCenters
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<CostCenter>>> GetCostCenters()
-        {
-          if (_context.CostCenters == null)
-          {
-              return NotFound();
-          }
-            return await _context.CostCenters.ToListAsync();
-        }
+		// GET: api/CostCenters
+		[HttpGet]
+		public async Task<ActionResult<IEnumerable<CostCenter>>> GetCostCenters()
+		{
+			if (_context.CostCenters == null)
+			{
+				return NotFound();
+			}
+			return await _context.CostCenters.ToListAsync();
+		}
 
-        // GET: api/CostCenters/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<CostCenter>> GetCostCenter(int id)
-        {
-          if (_context.CostCenters == null)
-          {
-              return NotFound();
-          }
-            var costCenter = await _context.CostCenters.FindAsync(id);
+		// GET: api/CostCenters/5
+		[HttpGet("{id}")]
+		public async Task<ActionResult<CostCenter>> GetCostCenter(int id)
+		{
+			if (_context.CostCenters == null)
+			{
+				return NotFound();
+			}
+			var costCenter = await _context.CostCenters.FindAsync(id);
 
-            if (costCenter == null)
-            {
-                return NotFound();
-            }
+			if (costCenter == null)
+			{
+				return NotFound();
+			}
 
-            return costCenter;
-        }
+			return costCenter;
+		}
 
-        // PUT: api/CostCenters/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutCostCenter(int id, CostCenter costCenter)
-        {
-            if (id != costCenter.CostCenterId)
-            {
-                return BadRequest();
-            }
+		// GET: api/CostCenters/search/name
+		[HttpGet("search/{name}")]
+		public async Task<IEnumerable<CostCenter>> SearchByDenom(string name)
+		{
+			IQueryable<CostCenter> query = _context.CostCenters;
 
-            _context.Entry(costCenter).State = EntityState.Modified;
+			if (!string.IsNullOrEmpty(name))
+			{
+				query = query.Where(entity => entity.Name.Contains(name));
+			}
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CostCenterExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+			return await query.ToListAsync();
+		}
 
-            return NoContent();
-        }
+		// PUT: api/CostCenters/5
+		// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+		[HttpPut("{id}")]
+		public async Task<IActionResult> PutCostCenter(int id, CostCenter costCenter)
+		{
+			if (id != costCenter.CostCenterId)
+			{
+				return BadRequest();
+			}
 
-        // POST: api/CostCenters
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<CostCenter>> PostCostCenter(CostCenter costCenter)
-        {
-          if (_context.CostCenters == null)
-          {
-              return Problem("Entity set 'CorreosContext.CostCenters'  is null.");
-          }
-            _context.CostCenters.Add(costCenter);
-            await _context.SaveChangesAsync();
+			_context.Entry(costCenter).State = EntityState.Modified;
 
-            return CreatedAtAction("GetCostCenter", new { id = costCenter.CostCenterId }, costCenter);
-        }
+			try
+			{
+				await _context.SaveChangesAsync();
+			}
+			catch (DbUpdateConcurrencyException)
+			{
+				if (!CostCenterExists(id))
+				{
+					return NotFound();
+				}
+				else
+				{
+					throw;
+				}
+			}
 
-        // DELETE: api/CostCenters/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCostCenter(int id)
-        {
-            if (_context.CostCenters == null)
-            {
-                return NotFound();
-            }
-            var costCenter = await _context.CostCenters.FindAsync(id);
-            if (costCenter == null)
-            {
-                return NotFound();
-            }
+			return NoContent();
+		}
 
-            _context.CostCenters.Remove(costCenter);
-            await _context.SaveChangesAsync();
+		// POST: api/CostCenters
+		// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+		[HttpPost]
+		public async Task<ActionResult<CostCenter>> PostCostCenter(CostCenter costCenter)
+		{
+			if (_context.CostCenters == null)
+			{
+				return Problem("Entity set 'CorreosContext.CostCenters'  is null.");
+			}
+			_context.CostCenters.Add(costCenter);
+			await _context.SaveChangesAsync();
 
-            return NoContent();
-        }
+			return CreatedAtAction("GetCostCenter", new { id = costCenter.CostCenterId }, costCenter);
+		}
 
-        private bool CostCenterExists(int id)
-        {
-            return (_context.CostCenters?.Any(e => e.CostCenterId == id)).GetValueOrDefault();
-        }
-    }
+		// DELETE: api/CostCenters/5
+		[HttpDelete("{id}")]
+		public async Task<IActionResult> DeleteCostCenter(int id)
+		{
+			if (_context.CostCenters == null)
+			{
+				return NotFound();
+			}
+			var costCenter = await _context.CostCenters.FindAsync(id);
+			if (costCenter == null)
+			{
+				return NotFound();
+			}
+
+			_context.CostCenters.Remove(costCenter);
+			await _context.SaveChangesAsync();
+
+			return NoContent();
+		}
+
+		private bool CostCenterExists(int id)
+		{
+			return (_context.CostCenters?.Any(e => e.CostCenterId == id)).GetValueOrDefault();
+		}
+	}
 }
