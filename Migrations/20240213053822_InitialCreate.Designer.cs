@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace correos_backend.Migrations
 {
     [DbContext(typeof(CorreosContext))]
-    [Migration("20231218063246_IncomeExpenses")]
-    partial class IncomeExpenses
+    [Migration("20240213053822_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -89,6 +89,42 @@ namespace correos_backend.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("CostCenter", b =>
+                {
+                    b.Property<int>("CostCenterId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CostCenterId"));
+
+                    b.Property<string>("AreaCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("GerencyCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OfficeCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("CostCenterId");
+
+                    b.ToTable("CostCenters");
+                });
+
             modelBuilder.Entity("Expense", b =>
                 {
                     b.Property<int>("ExpenseId")
@@ -97,13 +133,8 @@ namespace correos_backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ExpenseId"));
 
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CostCenter")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("CostCenterId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
@@ -114,7 +145,14 @@ namespace correos_backend.Migrations
                     b.Property<decimal>("ProjectedAmount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int>("SpentId")
+                        .HasColumnType("int");
+
                     b.HasKey("ExpenseId");
+
+                    b.HasIndex("CostCenterId");
+
+                    b.HasIndex("SpentId");
 
                     b.ToTable("Expenses");
                 });
@@ -127,7 +165,7 @@ namespace correos_backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IncomeId"));
 
-                    b.Property<int>("Code")
+                    b.Property<int>("CostCenterId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("Date")
@@ -139,11 +177,14 @@ namespace correos_backend.Migrations
                     b.Property<decimal>("ProjectedAmount")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<string>("Service")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("ServiceId")
+                        .HasColumnType("int");
 
                     b.HasKey("IncomeId");
+
+                    b.HasIndex("CostCenterId");
+
+                    b.HasIndex("ServiceId");
 
                     b.ToTable("Incomes");
                 });
@@ -281,6 +322,91 @@ namespace correos_backend.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Service", b =>
+                {
+                    b.Property<int>("ServiceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ServiceId"));
+
+                    b.Property<int>("Code")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("ServiceId");
+
+                    b.ToTable("Services");
+                });
+
+            modelBuilder.Entity("Spent", b =>
+                {
+                    b.Property<int>("SpentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SpentId"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Denomination")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("SpentId");
+
+                    b.ToTable("Spents");
+                });
+
+            modelBuilder.Entity("Expense", b =>
+                {
+                    b.HasOne("CostCenter", "CostCenter")
+                        .WithMany("Expenses")
+                        .HasForeignKey("CostCenterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Spent", "Spent")
+                        .WithMany("Expenses")
+                        .HasForeignKey("SpentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CostCenter");
+
+                    b.Navigation("Spent");
+                });
+
+            modelBuilder.Entity("Income", b =>
+                {
+                    b.HasOne("CostCenter", "CostCenter")
+                        .WithMany("Incomes")
+                        .HasForeignKey("CostCenterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Service", "Service")
+                        .WithMany("Incomes")
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CostCenter");
+
+                    b.Navigation("Service");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -330,6 +456,23 @@ namespace correos_backend.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("CostCenter", b =>
+                {
+                    b.Navigation("Expenses");
+
+                    b.Navigation("Incomes");
+                });
+
+            modelBuilder.Entity("Service", b =>
+                {
+                    b.Navigation("Incomes");
+                });
+
+            modelBuilder.Entity("Spent", b =>
+                {
+                    b.Navigation("Expenses");
                 });
 #pragma warning restore 612, 618
         }

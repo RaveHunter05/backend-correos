@@ -6,14 +6,11 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace correos_backend.Migrations
 {
     /// <inheritdoc />
-    public partial class ChangeLoginFramework : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "Users");
-
             migrationBuilder.CreateTable(
                 name: "AspNetRoles",
                 columns: table => new
@@ -51,6 +48,54 @@ namespace correos_backend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CostCenters",
+                columns: table => new
+                {
+                    CostCenterId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    GerencyCode = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    AreaCode = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    OfficeCode = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Code = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Date = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CostCenters", x => x.CostCenterId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Services",
+                columns: table => new
+                {
+                    ServiceId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Code = table.Column<int>(type: "int", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Date = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Services", x => x.ServiceId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Spents",
+                columns: table => new
+                {
+                    SpentId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Category = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Denomination = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Date = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Spents", x => x.SpentId);
                 });
 
             migrationBuilder.CreateTable(
@@ -159,6 +204,64 @@ namespace correos_backend.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "Incomes",
+                columns: table => new
+                {
+                    IncomeId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ProjectedAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    ExecutedAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Date = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ServiceId = table.Column<int>(type: "int", nullable: false),
+                    CostCenterId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Incomes", x => x.IncomeId);
+                    table.ForeignKey(
+                        name: "FK_Incomes_CostCenters_CostCenterId",
+                        column: x => x.CostCenterId,
+                        principalTable: "CostCenters",
+                        principalColumn: "CostCenterId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Incomes_Services_ServiceId",
+                        column: x => x.ServiceId,
+                        principalTable: "Services",
+                        principalColumn: "ServiceId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Expenses",
+                columns: table => new
+                {
+                    ExpenseId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ProjectedAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    ExecutedAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Date = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    SpentId = table.Column<int>(type: "int", nullable: false),
+                    CostCenterId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Expenses", x => x.ExpenseId);
+                    table.ForeignKey(
+                        name: "FK_Expenses_CostCenters_CostCenterId",
+                        column: x => x.CostCenterId,
+                        principalTable: "CostCenters",
+                        principalColumn: "CostCenterId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Expenses_Spents_SpentId",
+                        column: x => x.SpentId,
+                        principalTable: "Spents",
+                        principalColumn: "SpentId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 table: "AspNetRoleClaims",
@@ -197,6 +300,26 @@ namespace correos_backend.Migrations
                 column: "NormalizedUserName",
                 unique: true,
                 filter: "[NormalizedUserName] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Expenses_CostCenterId",
+                table: "Expenses",
+                column: "CostCenterId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Expenses_SpentId",
+                table: "Expenses",
+                column: "SpentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Incomes_CostCenterId",
+                table: "Incomes",
+                column: "CostCenterId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Incomes_ServiceId",
+                table: "Incomes",
+                column: "ServiceId");
         }
 
         /// <inheritdoc />
@@ -218,25 +341,25 @@ namespace correos_backend.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "Expenses");
+
+            migrationBuilder.DropTable(
+                name: "Incomes");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
 
-            migrationBuilder.CreateTable(
-                name: "Users",
-                columns: table => new
-                {
-                    id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Password = table.Column<string>(type: "nvarchar(max)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Users", x => x.id);
-                });
+            migrationBuilder.DropTable(
+                name: "Spents");
+
+            migrationBuilder.DropTable(
+                name: "CostCenters");
+
+            migrationBuilder.DropTable(
+                name: "Services");
         }
     }
 }
