@@ -65,14 +65,14 @@ namespace correos_backend.Controllers
 		// PUT: api/CostCenters/5
 		// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
 		[HttpPut("{id}")]
-		public async Task<IActionResult> PutCostCenter(int id, CostCenter costCenter)
+		public async Task<IActionResult> PutCostCenter(int id, CostCenter costcenter)
 		{
-			if (id != costCenter.CostCenterId)
+			if (id != costcenter.CostCenterId)
 			{
 				return BadRequest();
 			}
 
-			_context.Entry(costCenter).State = EntityState.Modified;
+			_context.Entry(costcenter).State = EntityState.Modified;
 
 			try
 			{
