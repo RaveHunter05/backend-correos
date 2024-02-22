@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace correos_backend.Controllers
 {
@@ -29,6 +30,178 @@ namespace correos_backend.Controllers
 			}
 			return await _context.Expenses.Include(x => x.CostCenter).Include(n => n.Spent).ToListAsync();
 		}
+
+		// GET: api/Expenses by months, costcenter
+		[HttpGet("month/costCenter/{year}")]
+
+			public async Task<ActionResult<IEnumerable<Expense>>> GetExpensesMonthlyByCostCenter(int year, [FromQuery] int[] months)
+			{
+				if (_context.Expenses == null)
+				{
+					return NotFound();
+				}
+				var expensesByCostCenter = await _context.Expenses
+					.Where(x => x.Date.Year == year)
+					.Where(s => months.Contains(s.Date.Month))
+					.GroupBy(expense => new {
+							Year = expense.Date.Year,
+							CostCenterId = expense.CostCenterId,
+							})
+				.Select(group => new {
+						CostCenterId = group.Key.CostCenterId,
+						CostCenterInfo = group.GroupBy(costcenter  => new{
+								Name = costcenter.CostCenter!.Name,
+								Code = costcenter.CostCenter!.Code
+								})
+						.Select(x => new{
+								Name = x.Key.Name,
+								Code = x.Key.Code
+								})
+						,
+						Year = group.Key.Year,
+						Month = group.Select(expense => new {
+								Month = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(expense.Date.Month),
+								Projected = expense.ProjectedAmount,
+								Executed = expense.ExecutedAmount
+								})
+						})
+				.ToListAsync();
+
+				var finalExpenses = expensesByCostCenter.Select(expense => new {
+						CostCenterId = expense.CostCenterId,
+						CostCenterInfo = expense.CostCenterInfo,
+						Year = expense.Year,
+						Months = expense.Month.GroupBy(m => m.Month)
+						.Select(mGroup => new{
+								Month = mGroup.Key,
+								Executed = mGroup.Sum(m => m.Executed),
+								Projected = mGroup.Sum(m => m.Projected)
+								}),
+						Absolute = expense.Month.Sum(x => x.Executed) - expense.Month.Sum(x => x.Projected),
+						Percentual = Math.Round(((expense.Month.Sum(x => x.Executed) - expense.Month.Sum(x => x.Projected)) / expense.Month.Sum(x => x.Projected) * 100), 2)
+
+						});
+
+				return Ok(finalExpenses);
+			}
+
+
+		// GET: api/General by months
+		[HttpGet("month/general/{year}")]
+
+			public async Task<ActionResult<IEnumerable<Expense>>> GetExpensesMonthlyGeneral(int year, [FromQuery] int [] months)
+			{
+				if (_context.Expenses == null)
+				{
+					return NotFound();
+				}
+				var expensesBySpent = await _context.Expenses
+					.Where(x => x.Date.Year == year)
+					.Where(s => months.Contains(s.Date.Month))
+					.GroupBy(expense => new {
+							Year = expense.Date.Year,
+							spentId = expense.SpentId,
+							costCenterId = expense.CostCenterId
+							})
+				.Select(x => new {
+						SpentId = x.Key.spentId,
+						SpentInfo = x.GroupBy(expense => new{
+								Category = expense.Spent!.Category,
+								Denomination = expense.Spent!.Denomination
+								})
+						.Select(x => new{
+								Category = x.Key.Category,
+								Denomination = x.Key.Denomination
+								}).FirstOrDefault()
+						,
+						CostCenterId = x.Key.costCenterId,
+						CostCenterInfo = x.GroupBy(expense => new{
+								Code = expense.CostCenter!.Code,
+								Name = expense.CostCenter!.Name
+								})
+						.Select(x => new{
+								Code = x.Key.Code,
+								Name = x.Key.Name
+								}).FirstOrDefault()
+						,
+						Year = x.Key.Year,
+						Month = x.Select(expense => new {
+								Month = expense.Date.Month,
+								Executed = expense.ExecutedAmount,
+								Projected = expense.ProjectedAmount
+								})
+						})
+				.ToListAsync();
+
+				var finalExpense = expensesBySpent.Select(expense => new{
+						SpentId = expense.SpentId,
+						SpentInfo = expense.SpentInfo,
+						CostCenterId = expense.CostCenterId,
+						CostCenterInfo = expense.CostCenterInfo,
+						Months = expense.Month.GroupBy(x => x.Month)
+						.Select(mGroup => new {
+								Month = mGroup.Key,
+								Executed = mGroup.Sum(m => m.Executed),
+								Projected = mGroup.Sum(m => m.Projected),
+								}),
+						Absolute = expense.Month.Sum(m => m.Executed) - expense.Month.Sum(m => m.Projected),
+						Percentual = Math.Round((((expense.Month.Sum(m => m.Executed) - expense.Month.Sum(m => m.Projected)) / expense.Month.Sum(m => m.Projected)) * 100) , 2)
+						});
+
+				return Ok(finalExpense);
+			}
+
+		// GET: api/Expenses by months, spent(gasto)
+		[HttpGet("month/spent/{year}")]
+
+			public async Task<ActionResult<IEnumerable<Expense>>> GetExpensesMonthlyBySpent(int year, [FromQuery] int [] months)
+			{
+				if (_context.Expenses == null)
+				{
+					return NotFound();
+				}
+				var expensesBySpent = await _context.Expenses
+					.Where(x => x.Date.Year == year)
+					.Where(s => months.Contains(s.Date.Month))
+					.GroupBy(expense => new {
+							Year = expense.Date.Year,
+							spentId = expense.SpentId,
+							})
+				.Select(x => new {
+						SpentId = x.Key.spentId,
+						SpentInfo = x.GroupBy(expense => new{
+								Category = expense.Spent!.Category,
+								Denomination = expense.Spent!.Denomination
+								})
+						.Select(x => new{
+								Category = x.Key.Category,
+								Denomination = x.Key.Denomination
+								}).FirstOrDefault()
+						,
+						Year = x.Key.Year,
+						Month = x.Select(expense => new {
+								Month = expense.Date.Month,
+								Executed = expense.ExecutedAmount,
+								Projected = expense.ProjectedAmount
+								})
+						})
+				.ToListAsync();
+
+				var finalExpense = expensesBySpent.Select(expense => new{
+						SpentId = expense.SpentId,
+						SpentInfo = expense.SpentInfo,
+						Months = expense.Month.GroupBy(x => x.Month)
+						.Select(mGroup => new {
+								Month = mGroup.Key,
+								Executed = mGroup.Sum(m => m.Executed),
+								Projected = mGroup.Sum(m => m.Projected),
+								}),
+						Absolute = expense.Month.Sum(m => m.Executed) - expense.Month.Sum(m => m.Projected),
+						Percentual = Math.Round((((expense.Month.Sum(m => m.Executed) - expense.Month.Sum(m => m.Projected)) / expense.Month.Sum(m => m.Projected)) * 100) , 2)
+						});
+
+				return Ok(finalExpense);
+			}
 
 		// GET: api/Expenses/5
 		[HttpGet("{id}")]
