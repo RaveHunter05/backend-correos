@@ -28,21 +28,45 @@ namespace correos_backend.Controllers
 			{
 				return NotFound();
 			}
-			return await _context.Expenses.Include(x => x.CostCenter).Include(n => n.Spent).ToListAsync();
+			var  expensesData = await _context.Expenses
+				.GroupBy(expense => new {
+						Year = expense.Date.Year,
+						Month = expense.Date.Month,
+						ExpenseId = expense.ExpenseId,
+						})
+				.Select(group => new {
+						Year = group.Key.Year,
+						Month = group.Key.Month,
+						ExpenseId = group.Key.ExpenseId,
+						CostCenter = group.Select(expense => new {
+								CostCenterId = expense.CostCenterId,
+								Name = expense.CostCenter!.Name,
+								Code = expense.CostCenter!.Code
+								}).FirstOrDefault(),
+						Spent = group.Select(expense => new {
+								SpentId = expense.SpentId,
+								Category = expense.Spent!.Category,
+								Denomination = expense.Spent!.Denomination
+								}).FirstOrDefault(),
+						ProjectedAmount = group.Sum(expense => expense.ProjectedAmount),
+						ExecutedAmount = group.Sum(expense => expense.ExecutedAmount),
+						})
+				.ToListAsync();
+
+				return Ok(expensesData);
 		}
 
 		// GET: api/Expenses by months, costcenter
-		[HttpGet("month/costCenter/{year}")]
+		[HttpGet("month/costCenter/{initialDate}/{endDate}")]
 
-			public async Task<ActionResult<IEnumerable<Expense>>> GetExpensesMonthlyByCostCenter(int year, [FromQuery] int[] months)
+			public async Task<ActionResult<IEnumerable<Expense>>> GetExpensesMonthlyByCostCenter(DateTime initialDate, DateTime endDate)
 			{
 				if (_context.Expenses == null)
 				{
 					return NotFound();
 				}
 				var expensesByCostCenter = await _context.Expenses
-					.Where(x => x.Date.Year == year)
-					.Where(s => months.Contains(s.Date.Month))
+					.Where(x => x.Date >= initialDate && x.Date <= endDate)
 					.GroupBy(expense => new {
 							Year = expense.Date.Year,
 							CostCenterId = expense.CostCenterId,
@@ -56,7 +80,7 @@ namespace correos_backend.Controllers
 						.Select(x => new{
 								Name = x.Key.Name,
 								Code = x.Key.Code
-								})
+								}).FirstOrDefault()
 						,
 						Year = group.Key.Year,
 						Month = group.Select(expense => new {
@@ -87,17 +111,16 @@ namespace correos_backend.Controllers
 
 
 		// GET: api/General by months
-		[HttpGet("month/general/{year}")]
+		[HttpGet("month/general/{initialDate}/{finalDate}")]
 
-			public async Task<ActionResult<IEnumerable<Expense>>> GetExpensesMonthlyGeneral(int year, [FromQuery] int [] months)
+			public async Task<ActionResult<IEnumerable<Expense>>> GetExpensesMonthlyGeneral(DateTime initialDate, DateTime endDate)
 			{
 				if (_context.Expenses == null)
 				{
 					return NotFound();
 				}
 				var expensesBySpent = await _context.Expenses
-					.Where(x => x.Date.Year == year)
-					.Where(s => months.Contains(s.Date.Month))
+					.Where(x => x.Date >= initialDate && x.Date <= endDate)
 					.GroupBy(expense => new {
 							Year = expense.Date.Year,
 							spentId = expense.SpentId,
@@ -124,13 +147,13 @@ namespace correos_backend.Controllers
 								Name = x.Key.Name
 								}).FirstOrDefault()
 						,
-						Year = x.Key.Year,
-						Month = x.Select(expense => new {
-								Month = expense.Date.Month,
-								Executed = expense.ExecutedAmount,
-								Projected = expense.ProjectedAmount
-								})
-						})
+							Year = x.Key.Year,
+							Month = x.Select(expense => new {
+									Month = expense.Date.Month,
+									Executed = expense.ExecutedAmount,
+									Projected = expense.ProjectedAmount
+									})
+				})
 				.ToListAsync();
 
 				var finalExpense = expensesBySpent.Select(expense => new{
@@ -152,17 +175,16 @@ namespace correos_backend.Controllers
 			}
 
 		// GET: api/Expenses by months, spent(gasto)
-		[HttpGet("month/spent/{year}")]
+		[HttpGet("month/spent/{initialDate}/{endDate}")]
 
-			public async Task<ActionResult<IEnumerable<Expense>>> GetExpensesMonthlyBySpent(int year, [FromQuery] int [] months)
+			public async Task<ActionResult<IEnumerable<Expense>>> GetExpensesMonthlyBySpent(DateTime initialDate, DateTime endDate)
 			{
 				if (_context.Expenses == null)
 				{
 					return NotFound();
 				}
 				var expensesBySpent = await _context.Expenses
-					.Where(x => x.Date.Year == year)
-					.Where(s => months.Contains(s.Date.Month))
+					.Where(x => x.Date >= initialDate && x.Date <= endDate)
 					.GroupBy(expense => new {
 							Year = expense.Date.Year,
 							spentId = expense.SpentId,
@@ -280,6 +302,23 @@ namespace correos_backend.Controllers
 
 			return CreatedAtAction("GetExpense", new { id = expense.ExpenseId }, expense);
 		}
+
+
+		[HttpPost("bulk")] public async Task<ActionResult<IEnumerable<Expense>>> PostExpenseBulk(IEnumerable<Expense> expenses) {
+			if (expenses == null || !expenses.Any())
+			{
+				return BadRequest("No incomes provided for bulk creation.");
+			}
+			if (_context.Expenses == null)
+			{
+				return Problem("Entity set 'CorreosContext.Expenses'  is null.");
+			}
+
+			_context.Expenses.AddRange(expenses);
+			await _context.SaveChangesAsync();
+
+			return CreatedAtAction("GetExpense", expenses);		}
+
 
 		// DELETE: api/Expenses/5
 		[HttpDelete("{id}")]
