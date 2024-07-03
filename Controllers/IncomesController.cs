@@ -29,31 +29,25 @@ namespace correos_backend.Controllers
 			}
 			var incomesByDate = await _context.Incomes
 				.GroupBy(income => new
-				{
-					Year = income.Date.Year,
-					Month = income.Date.Month,
-					Day = income.Date.Day,
-					ServiceId = income.ServiceId,
-				})
-				.Select(group => new
-				{
-					Year = group.Key.Year,
-					Month = group.Key.Month,
-					Day = group.Key.Day,
-					ServiceId = group.Key.ServiceId,
-					Service = group.GroupBy(service => new
+						{
+						Date = income.Date,
+						IncomeId = income.IncomeId,
+
+						})
+			.Select(group => new
 					{
-						Name = service.Service!.Name,
-						Code = service.Service!.Code
-					}).Select(x => new
-					{
-						Name = x.Key.Name,
-						Code = x.Key.Code
-					}).FirstOrDefault(),
+					Date = group.Key.Date,
+					IncomeId = group.Key.IncomeId,
+					Service = group.Select(income => new
+							{
+							ServiceId = income.ServiceId,
+							Name = income.Service!.Name,
+							Code = income.Service!.Code
+							}).FirstOrDefault(),
 					ExecutedAmount = group.Sum(income => income.ExecutedAmount),
 					ProjectedAmount = group.Sum(income => income.ProjectedAmount)
-				})
-
+					})
+			.OrderByDescending(income => income.Date)
 			.ToListAsync();
 
 			return Ok(incomesByDate);
@@ -71,45 +65,50 @@ namespace correos_backend.Controllers
 			var incomesByService = await _context.Incomes
 				.Where(income => income.Date >= initialDate && income.Date <= endDate)
 				.GroupBy(income => new
-				{
-					Year = income.Date.Year,
-					ServiceId = income.ServiceId,
-				})
+						{
+						Year = income.Date.Year,
+						ServiceId = income.ServiceId,
+						})
 			.Select(group => new
-			{
-				ServiceId = group.Key.ServiceId,
-				ServiceInfo = group.GroupBy(service => new
-				{
-					Name = service.Service!.Name,
-					Code = service.Service!.Code
-				}).Select(x => new
-				{
-					Name = x.Key.Name,
-					Code = x.Key.Code
-				}).FirstOrDefault(),
-				Months = group.Select(income => new
-				{
-					Month = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(income.Date.Month),
-					Executed = income.ExecutedAmount,
-					Projected = income.ProjectedAmount
-				}),
-			})
+					{
+					ServiceId = group.Key.ServiceId,
+					ServiceInfo = group.GroupBy(service => new
+							{
+							Name = service.Service!.Name,
+							Code = service.Service!.Code
+							}).Select(x => new
+								{
+								Name = x.Key.Name,
+								Code = x.Key.Code
+								}).FirstOrDefault(),
+					Months = group.Select(income => new
+							{
+							Month = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(income.Date.Month),
+							Executed = income.ExecutedAmount,
+							Projected = income.ProjectedAmount
+							}),
+					})
 			.ToListAsync();
 
-			var incomesFinal = incomesByService.Select(group => new
+			if (incomesByService == null)
 			{
-				ServiceId = group.ServiceId,
-				ServiceInfo = group.ServiceInfo,
-				Months = group.Months.GroupBy(m => m.Month)
-					.Select(mGroup => new
+				return NotFound();
+			}
+
+			var incomesFinal = incomesByService.Select(group => new
 					{
-						Month = mGroup.Key,
-						Executed = mGroup.Sum(m => m.Executed),
-						Projected = mGroup.Sum(m => m.Projected),
-					}),
-				Absolute = group.Months.Sum(m => m.Executed) - group.Months.Sum(m => m.Projected),
-				Percentual = Math.Round((((group.Months.Sum(m => m.Executed) - group.Months.Sum(m => m.Projected)) / group.Months.Sum(m => m.Projected)) * 100), 2),
-			});
+					ServiceId = group.ServiceId,
+					ServiceInfo = group.ServiceInfo,
+					Months = group.Months.GroupBy(m => m.Month)
+					.Select(mGroup => new
+							{
+							Month = mGroup.Key,
+							Executed = mGroup.Sum(m => m.Executed),
+							Projected = mGroup.Sum(m => m.Projected),
+							}),
+					Absolute = group.Months.Sum(m => m.Executed) - group.Months.Sum(m => m.Projected),
+					Percentual = group.Months.Sum(m => m.Projected) == 0 ? 0 : Math.Round((((group.Months.Sum(m => m.Executed) - group.Months.Sum(m => m.Projected)) / group.Months.Sum(m => m.Projected)) * 100), 2),
+					});
 
 			return Ok(incomesFinal);
 		}
@@ -126,43 +125,43 @@ namespace correos_backend.Controllers
 			var incomesByDate = await _context.Incomes
 				.Where(income => income.Date >= initialDate && income.Date <= endDate)
 				.GroupBy(income => new
-				{
-					Year = income.Date.Year,
-					Month = income.Date.Month,
-					Day = income.Date.Day,
-					IncomeId = income.IncomeId,
-				})
-				.Select(group => new
-				{
+						{
+						Year = income.Date.Year,
+						Month = income.Date.Month,
+						Day = income.Date.Day,
+						IncomeId = income.IncomeId,
+						})
+			.Select(group => new
+					{
 					Year = group.Key.Year,
 					Month = group.Key.Month,
 					Day = group.Key.Day,
 					IncomeId = group.Key.IncomeId,
 					ServiceId = group.Select(income => income.ServiceId).FirstOrDefault(),
 					ServiceInfo = group.GroupBy(service => new
-					{
-						Name = service.Service!.Name,
-						Code = service.Service!.Code
-					}).Select(x => new
-					{
-						Name = x.Key.Name,
-						Code = x.Key.Code
-					}).FirstOrDefault(),
+							{
+							Name = service.Service!.Name,
+							Code = service.Service!.Code
+							}).Select(x => new
+								{
+								Name = x.Key.Name,
+								Code = x.Key.Code
+								}).FirstOrDefault(),
 					CostCenterId = group.Select(income => income.CostCenterId).FirstOrDefault(),
 					CostCenterInfo = group.GroupBy(costcenter => new
-					{
-						Name = costcenter.CostCenter!.Name,
-						Code = costcenter.CostCenter!.Code
-					}).Select(x => new
-					{
-						Name = x.Key.Name,
-						Code = x.Key.Code
-					}).FirstOrDefault(),
+							{
+							Name = costcenter.CostCenter!.Name,
+							Code = costcenter.CostCenter!.Code
+							}).Select(x => new
+								{
+								Name = x.Key.Name,
+								Code = x.Key.Code
+								}).FirstOrDefault(),
 					ExecutedAmount = group.Sum(income => income.ExecutedAmount),
 					ProjectedAmount = group.Sum(income => income.ProjectedAmount),
-						Absolute = group.Sum(income => income.ExecutedAmount) - group.Sum(income => income.ProjectedAmount),
-					Percentual = Math.Round((((group.Sum(income => income.ExecutedAmount) - group.Sum(income => income.ProjectedAmount)) / group.Sum(income => income.ProjectedAmount)) * 100), 2)
-				})
+					Absolute = group.Sum(income => income.ExecutedAmount) - group.Sum(income => income.ProjectedAmount),
+					Percentual = group.Sum(income => income.ProjectedAmount) == 0 ? 0 : Math.Round((((group.Sum(income => income.ExecutedAmount) - group.Sum(income => income.ProjectedAmount)) / group.Sum(income => income.ProjectedAmount)) * 100), 2)
+					})
 
 			.ToListAsync();
 
@@ -184,65 +183,65 @@ namespace correos_backend.Controllers
 			var incomesByCostCenter = await _context.Incomes
 				.Where(s => s.Date >= initialDate && s.Date <= endDate)
 				.GroupBy(income => new
-				{
-					Year = income.Date.Year,
-					CostCenterId = income.CostCenterId,
-					ServiceId = income.ServiceId
-				})
+						{
+						Year = income.Date.Year,
+						CostCenterId = income.CostCenterId,
+						ServiceId = income.ServiceId
+						})
 			.Select(x => new
-			{
-				CostCenterId = x.Key.CostCenterId,
-				CostCenterInfo = x.GroupBy(costcenter => new
-				{
-					Name = costcenter.CostCenter!.Name,
-					Code = costcenter.CostCenter!.Code
-				})
-					.Select(x => new
 					{
-						Name = x.Key.Name,
-						Code = x.Key.Code
-					}).FirstOrDefault(),
-				ServiceId = x.Key.ServiceId,
-				ServiceInfo = x.GroupBy(service => new
-				{
-					Name = service.Service!.Name,
-					Code = service.Service!.Code,
-				})
+					CostCenterId = x.Key.CostCenterId,
+					CostCenterInfo = x.GroupBy(costcenter => new
+							{
+							Name = costcenter.CostCenter!.Name,
+							Code = costcenter.CostCenter!.Code
+							})
 					.Select(x => new
-					{
-						Name = x.Key.Name,
-						Code = x.Key.Code
-					}).FirstOrDefault(),
-				Months = x.Select(income => new
-				{
-					Month = income.Date.Month,
-					Executed = income.ExecutedAmount,
-					Projected = income.ProjectedAmount
-				}),
-			})
+							{
+							Name = x.Key.Name,
+							Code = x.Key.Code
+							}).FirstOrDefault(),
+					ServiceId = x.Key.ServiceId,
+					ServiceInfo = x.GroupBy(service => new
+							{
+							Name = service.Service!.Name,
+							Code = service.Service!.Code,
+							})
+					.Select(x => new
+							{
+							Name = x.Key.Name,
+							Code = x.Key.Code
+							}).FirstOrDefault(),
+						Months = x.Select(income => new
+								{
+								Month = income.Date.Month,
+								Executed = income.ExecutedAmount,
+								Projected = income.ProjectedAmount
+								}),
+					})
 			.ToListAsync();
 
 			var incomesFinal = incomesByCostCenter.Select(group => new
-			{
-				CostCenterId = group.CostCenterId,
-				CostCenterInfo = group.CostCenterInfo,
-				ServiceId = group.ServiceId,
-				ServiceInfo = group.ServiceInfo,
-				Months = group.Months.GroupBy(m => m.Month)
-					.Select(mGroup => new
 					{
-						Month = mGroup.Key,
-						Executed = mGroup.Sum(m => m.Executed),
-						Projected = mGroup.Sum(m => m.Projected)
-					}),
-				Absolute = group.Months.Sum(m => m.Executed) - group.Months.Sum(m => m.Projected),
-				Percentual = Math.Round((((group.Months.Sum(m => m.Executed) - group.Months.Sum(m => m.Projected)) / group.Months.Sum(m => m.Projected)) * 100), 2)
-			}
+					CostCenterId = group.CostCenterId,
+					CostCenterInfo = group.CostCenterInfo,
+					ServiceId = group.ServiceId,
+					ServiceInfo = group.ServiceInfo,
+					Months = group.Months.GroupBy(m => m.Month)
+					.Select(mGroup => new
+							{
+							Month = mGroup.Key,
+							Executed = mGroup.Sum(m => m.Executed),
+							Projected = mGroup.Sum(m => m.Projected)
+							}),
+					Absolute = group.Months.Sum(m => m.Executed) - group.Months.Sum(m => m.Projected),
+					Percentual = group.Months.Sum(m => m.Projected) == 0 ? 0 : Math.Round((((group.Months.Sum(m => m.Executed) - group.Months.Sum(m => m.Projected)) / group.Months.Sum(m => m.Projected)) * 100), 2)
+					}
 					);
 
 			return Ok(incomesFinal);
 		}
-		
+
 		// GET: api/Incomes/month/costcenter/2022-01-01/2022-12-31
 		[HttpGet("month/costcenter/{initialDate}/{endDate}")]
 		public async Task<ActionResult<IEnumerable<Income>>> GetIncomsMonthlyByCostCenter(DateTime initialDate, DateTime endDate)
@@ -254,46 +253,46 @@ namespace correos_backend.Controllers
 			var incomesByCostCenter = await _context.Incomes
 				.Where(s => s.Date >= initialDate && s.Date <= endDate)
 				.GroupBy(income => new
-				{
-					Year = income.Date.Year,
-					CostCenterId = income.CostCenterId,
-				})
+						{
+						Year = income.Date.Year,
+						CostCenterId = income.CostCenterId,
+						})
 			.Select(x => new
-			{
-				CostCenterId = x.Key.CostCenterId,
-				CostCenterInfo = x.GroupBy(costcenter => new
-				{
-					Name = costcenter.CostCenter!.Name,
-					Code = costcenter.CostCenter!.Code
-				})
-					.Select(x => new
 					{
-						Name = x.Key.Name,
-						Code = x.Key.Code
-					}).FirstOrDefault(),
-				Months = x.Select(income => new
-				{
-					Month = income.Date.Month,
-					Executed = income.ExecutedAmount,
-					Projected = income.ProjectedAmount
-				}),
-			})
+					CostCenterId = x.Key.CostCenterId,
+					CostCenterInfo = x.GroupBy(costcenter => new
+							{
+							Name = costcenter.CostCenter!.Name,
+							Code = costcenter.CostCenter!.Code
+							})
+					.Select(x => new
+							{
+							Name = x.Key.Name,
+							Code = x.Key.Code
+							}).FirstOrDefault(),
+					Months = x.Select(income => new
+							{
+							Month = income.Date.Month,
+							Executed = income.ExecutedAmount,
+							Projected = income.ProjectedAmount
+							}),
+					})
 			.ToListAsync();
 
 			var incomesFinal = incomesByCostCenter.Select(group => new
-			{
-				CostCenterId = group.CostCenterId,
-				CostCenterInfo = group.CostCenterInfo,
-				Months = group.Months.GroupBy(m => m.Month)
-					.Select(mGroup => new
 					{
-						Month = mGroup.Key,
-						Executed = mGroup.Sum(m => m.Executed),
-						Projected = mGroup.Sum(m => m.Projected)
-					}),
-				Absolute = group.Months.Sum(m => m.Executed) - group.Months.Sum(m => m.Projected),
-				Percentual = Math.Round((((group.Months.Sum(m => m.Executed) - group.Months.Sum(m => m.Projected)) / group.Months.Sum(m => m.Projected)) * 100), 2)
-			}
+					CostCenterId = group.CostCenterId,
+					CostCenterInfo = group.CostCenterInfo,
+					Months = group.Months.GroupBy(m => m.Month)
+					.Select(mGroup => new
+							{
+							Month = mGroup.Key,
+							Executed = mGroup.Sum(m => m.Executed),
+							Projected = mGroup.Sum(m => m.Projected)
+							}),
+					Absolute = group.Months.Sum(m => m.Executed) - group.Months.Sum(m => m.Projected),
+					Percentual = Math.Round((((group.Months.Sum(m => m.Executed) - group.Months.Sum(m => m.Projected)) / group.Months.Sum(m => m.Projected)) * 100), 2)
+					}
 					);
 
 			return Ok(incomesFinal);
