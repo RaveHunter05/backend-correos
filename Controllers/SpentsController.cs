@@ -27,7 +27,7 @@ namespace correos_backend.Controllers
 			{
 				return NotFound();
 			}
-			return await _context.Spents.ToListAsync();
+			return await _context.Spents.OrderByDescending(spent => spent.Date).ToListAsync();
 		}
 
 		// GET: api/Spents/5
