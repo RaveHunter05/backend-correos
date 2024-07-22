@@ -1,11 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
+using Microsoft.AspNetCore.Authorization;
 
 namespace correos_backend.Controllers
 {
@@ -21,6 +17,7 @@ namespace correos_backend.Controllers
 
 		// GET: api/Incomes
 		[HttpGet]
+		[Authorize(Roles = "admin")]
 		public async Task<ActionResult<IEnumerable<Income>>> GetIncomes()
 		{
 			if (_context.Incomes == null)

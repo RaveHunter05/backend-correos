@@ -1,3 +1,6 @@
+global using correos_backend.Helpers;
+global using correos_backend.Decorators;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -6,9 +9,12 @@ using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using correos_backend.Services;
+
+using dotenv.net;
 
 var builder = WebApplication.CreateBuilder(args);
+
+DotEnv.Load();
 
 // Add services to the container.
 
@@ -24,23 +30,28 @@ builder.Services.AddAuthentication(options =>
 		{
 		options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
 		options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-		options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-		}).AddJwtBearer(o =>
+		}).AddJwtBearer(options =>
 			{
-			o.TokenValidationParameters = new TokenValidationParameters
+			options.RequireHttpsMetadata = false;
+			options.SaveToken = true;
+			options.TokenValidationParameters = new TokenValidationParameters
 			{
-			ValidIssuer = builder.Configuration["Jwt:Issuer"],
-			ValidAudience = builder.Configuration["Jwt:Audience"],
-			IssuerSigningKey = new SymmetricSecurityKey
-			(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
-			ValidateIssuer = true,
-			ValidateAudience = true,
-			ValidateLifetime = false,
-			ValidateIssuerSigningKey = true
+			ValidateIssuerSigningKey = true,
+			ValidIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER"),
+			ValidAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE"),
+			IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET"))),
+			ClockSkew = TimeSpan.Zero
 			};
 			});
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+		{
+		options.DefaultPolicy = new AuthorizationPolicyBuilder().
+		AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme).
+		RequireAuthenticatedUser().
+		Build();
+		}
+		);
 
 builder.Services.AddDbContext<CorreosContext>(options =>
 		{
@@ -49,10 +60,13 @@ builder.Services.AddDbContext<CorreosContext>(options =>
 		});
 
 	builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-.AddEntityFrameworkStores<CorreosContext>()
+	.AddEntityFrameworkStores<CorreosContext>()
 	.AddDefaultTokenProviders();
 
-	builder.Services.AddScoped<JwtService>();
+	builder.Services.AddScoped<JwtSecurityTokenHandlerWrapper>();
+
+	builder.Services.AddControllersWithViews(options => {
+			options.Filters.Add(typeof(JwtAuthorizeFilter));});
 
 	var app = builder.Build();
 

@@ -11,8 +11,6 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
-using correos_backend.Services;
-
 namespace correos_backend.Controllers;
 
 [ApiController]
@@ -21,14 +19,14 @@ public class AuthenticateController : ControllerBase
 	private readonly UserManager<ApplicationUser> _userManager;
 	private readonly SignInManager<ApplicationUser> _signInManager;
 	private readonly IConfiguration _configuration;
-	private readonly JwtService _jwtService;
+	private readonly JwtSecurityTokenHandlerWrapper _jwtHelper;
 
-	public AuthenticateController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, JwtService jwtService)
+	public AuthenticateController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, JwtSecurityTokenHandlerWrapper jwtHelper)
 	{
 		_userManager = userManager;
 		_signInManager = signInManager;
 		_configuration = configuration;
-		_jwtService = jwtService;
+		_jwtHelper = jwtHelper;
 	}
 
 	[HttpPost]
@@ -42,7 +40,7 @@ public class AuthenticateController : ControllerBase
 			if(result.Succeeded)
 			{
 				var user = await _userManager.FindByEmailAsync(model.Email);
-				var token = await _jwtService.GenerateToken(user.Id, user.Email);
+				var token =  _jwtHelper.GenerateJwtToken(user.Id, user.Email);
 				return Ok(new {token, user});
 			}
 			return Unauthorized();
