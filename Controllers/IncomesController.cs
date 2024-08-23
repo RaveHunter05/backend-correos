@@ -17,7 +17,6 @@ namespace correos_backend.Controllers
 
 		// GET: api/Incomes
 		[HttpGet]
-		[Authorize(Roles = "admin")]
 		public async Task<ActionResult<IEnumerable<Income>>> GetIncomes()
 		{
 			if (_context.Incomes == null)
