@@ -11,24 +11,24 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
-using correos_backend.Services;
-
 namespace correos_backend.Controllers;
 
 [ApiController]
 public class AuthenticateController : ControllerBase
 {
 	private readonly UserManager<ApplicationUser> _userManager;
+	private readonly RoleManager<IdentityRole> _roleManager;
 	private readonly SignInManager<ApplicationUser> _signInManager;
 	private readonly IConfiguration _configuration;
-	private readonly JwtService _jwtService;
+	private readonly JwtSecurityTokenHandlerWrapper _jwtHelper;
 
-	public AuthenticateController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, JwtService jwtService)
+	public AuthenticateController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, JwtSecurityTokenHandlerWrapper jwtHelper)
 	{
 		_userManager = userManager;
+		_roleManager = roleManager;
 		_signInManager = signInManager;
 		_configuration = configuration;
-		_jwtService = jwtService;
+		_jwtHelper = jwtHelper;
 	}
 
 	[HttpPost]
@@ -42,8 +42,9 @@ public class AuthenticateController : ControllerBase
 			if(result.Succeeded)
 			{
 				var user = await _userManager.FindByEmailAsync(model.Email);
-				var token = await _jwtService.GenerateToken(user.Id, user.Email);
-				return Ok(new {token, user});
+				var roles = await _userManager.GetRolesAsync(user);
+				var token =  _jwtHelper.GenerateJwtToken(user.Id, user.Email);
+				return Ok(new {token, user, roles});
 			}
 			return Unauthorized();
 
@@ -65,11 +66,60 @@ public class AuthenticateController : ControllerBase
 			      UserName = model.Username
 		};
 		var result = await _userManager.CreateAsync(user, model.Password);
+
+		Console.WriteLine(result);
 		if (result.Succeeded)
 		{
+ var defaultrole = _roleManager.FindByNameAsync("Default").Result;  
+ if (defaultrole != null)
+ {
+	 IdentityResult roleResult = await _userManager.AddToRoleAsync(user, defaultrole.Name);
+ }
 			return Ok(new Response { Status = "Success", Message = "User created successfully!" });
 		}
 		return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed! Please check user details and try again." });
 
 	}
+
+	[HttpPut]
+	[Route("changepassword")]
+	public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordModel model)
+	{
+		if (!ModelState.IsValid)
+			return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Invalid model" });
+
+		var user = await _userManager.FindByEmailAsync(model.Email);
+		if (user == null)
+			return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User not found" });
+
+		var result = await _userManager.ChangePasswordAsync(user, model.OldPassword, model.NewPassword);
+		if (result.Succeeded)
+			return Ok(new Response { Status = "Success", Message = "Password changed successfully!" });
+
+		return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Password change failed! Please check password details and try again." });
+	}
+
+	[HttpPut]
+	[Route("changerole")]
+	public async Task<IActionResult> ChangeRole([FromBody] ChangeRoleModel model)
+	{
+		if (!ModelState.IsValid)
+			return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Invalid model" });
+
+		var user = await _userManager.FindByEmailAsync(model.Email);
+		if (user == null)
+			return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User not found" });
+
+		var roles = await _userManager.GetRolesAsync(user);
+		var result = await _userManager.RemoveFromRolesAsync(user, roles);
+		if (!result.Succeeded)
+			return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Role change failed! Please check role details and try again." });
+
+		result = await _userManager.AddToRoleAsync(user, model.Role);
+		if (result.Succeeded)
+			return Ok(new Response { Status = "Success", Message = "Role changed successfully!" });
+
+		return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Role change failed! Please check role details and try again." });
+	}
+
 }
