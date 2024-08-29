@@ -39,12 +39,12 @@ public class AuthenticateController : ControllerBase
 		{
 			var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, false, false);
 
-			if(result.Succeeded)
+			if (result.Succeeded)
 			{
 				var user = await _userManager.FindByEmailAsync(model.Email);
 				var roles = await _userManager.GetRolesAsync(user);
-				var token =  _jwtHelper.GenerateJwtToken(user.Id, user.Email);
-				return Ok(new {token, user, roles});
+				var token = _jwtHelper.GenerateJwtToken(user.Id, user.Email);
+				return Ok(new { token, user, roles });
 			}
 			return Unauthorized();
 
@@ -67,14 +67,10 @@ public class AuthenticateController : ControllerBase
 		};
 		var result = await _userManager.CreateAsync(user, model.Password);
 
-		Console.WriteLine(result);
+		// Assign a default role for a new user
 		if (result.Succeeded)
 		{
- var defaultrole = _roleManager.FindByNameAsync("Default").Result;  
- if (defaultrole != null)
- {
-	 IdentityResult roleResult = await _userManager.AddToRoleAsync(user, defaultrole.Name);
- }
+			IdentityResult roleResult = await _userManager.AddToRoleAsync(user, "Manager");
 			return Ok(new Response { Status = "Success", Message = "User created successfully!" });
 		}
 		return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed! Please check user details and try again." });
@@ -91,8 +87,8 @@ public class AuthenticateController : ControllerBase
 		var user = await _userManager.FindByEmailAsync(model.Email);
 		if (user == null)
 			return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User not found" });
-
-		var result = await _userManager.ChangePasswordAsync(user, model.OldPassword, model.NewPassword);
+		var code = await _userManager.GeneratePasswordResetTokenAsync(user);
+		var result = await _userManager.ResetPasswordAsync(user, code, model.NewPassword);
 		if (result.Succeeded)
 			return Ok(new Response { Status = "Success", Message = "Password changed successfully!" });
 

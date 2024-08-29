@@ -6,11 +6,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Text;
 
 using dotenv.net;
+using correos_backend.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -82,11 +81,28 @@ app.UseHttpsRedirection();
 
 app.UseCors();
 
+app.UseMiddleware<CheckUserIsActiveMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.MapGet("/security/getMessage", () => "Hello World!").RequireAuthorization();
+
+using (var scope = app.Services.CreateScope())
+{
+	var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+	var users = userManager.Users.ToList();
+
+	foreach (var user in users)
+	{
+		if (userManager.GetRolesAsync(user).Result.Count == 0)
+		{
+			userManager.AddToRoleAsync(user, "Manager").Wait();
+		}
+	}
+}
 
 app.Run();

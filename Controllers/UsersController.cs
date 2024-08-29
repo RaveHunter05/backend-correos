@@ -20,11 +20,11 @@ public class UsersController : ControllerBase
 	[HttpGet]
 	public async Task<ActionResult> GetUsers()
 	{
-		var users = await _userManager.Users.GroupBy(user => new { user.Id, user.UserName, user.Email }).Select(group => new
+		var users = await _userManager.Users.Select(group => new UsersViewModel()
 		{
-			Id = group.Key.Id,
-			UserName = group.Key.UserName,
-			Email = group.Key.Email
+			UserName = group.UserName,
+			Email = group.Email,
+			Role = string.Join(",", _userManager.GetRolesAsync(group).Result.ToArray())
 		}).ToListAsync();
 
 		return Ok(users);
@@ -83,6 +83,29 @@ public class UsersController : ControllerBase
 		if (result.Succeeded)
 		{
 			return Ok("User updated");
+		}
+		return BadRequest(result.Errors);
+	}
+
+
+	// PUT: api/users/disable/5
+	// Disable a user
+	[HttpPut("disable/{id}")]
+	public async Task<ActionResult> DisableUser(string id)
+	{
+		var user = await _userManager.FindByIdAsync(id);
+		if (user == null)
+		{
+			return NotFound("User not found");
+		}
+
+		user.IsActive = false;
+		user.LockoutEnabled = true;
+		user.LockoutEnd = DateTime.Now.AddYears(100);
+		var result = await _userManager.UpdateAsync(user);
+		if (result.Succeeded)
+		{
+			return Ok("User disabled");
 		}
 		return BadRequest(result.Errors);
 	}
