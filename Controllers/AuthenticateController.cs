@@ -37,11 +37,11 @@ public class AuthenticateController : ControllerBase
 	{
 		if (ModelState.IsValid)
 		{
-			var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, false, false);
+			var result = await _signInManager.PasswordSignInAsync(model.Username, model.Password, false, false);
 
 			if (result.Succeeded)
 			{
-				var user = await _userManager.FindByEmailAsync(model.Email);
+				var user = await _userManager.FindByNameAsync(model.Username);
 				var roles = await _userManager.GetRolesAsync(user);
 				var token = _jwtHelper.GenerateJwtToken(user.Id, user.Email);
 				return Ok(new { token, user, roles });
@@ -62,8 +62,8 @@ public class AuthenticateController : ControllerBase
 		ApplicationUser user = new ApplicationUser()
 		{
 			Email = model.Email,
-			      SecurityStamp = Guid.NewGuid().ToString(),
-			      UserName = model.Username
+		      	SecurityStamp = Guid.NewGuid().ToString(),
+		      	UserName = model.Username
 		};
 		var result = await _userManager.CreateAsync(user, model.Password);
 
