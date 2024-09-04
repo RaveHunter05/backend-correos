@@ -1,15 +1,8 @@
 using correos_backend.Authentication;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
+
+using Microsoft.AspNetCore.Authorization;
 
 namespace correos_backend.Controllers;
 
@@ -53,6 +46,7 @@ public class AuthenticateController : ControllerBase
 	}
 
 	[HttpPost]
+	[Authorize (Roles = "Boss, Admin")]
 	[Route("register")]
 	public async Task<IActionResult> Register([FromBody] RegisterModel model)
 	{
@@ -78,6 +72,7 @@ public class AuthenticateController : ControllerBase
 	}
 
 	[HttpPut]
+	[Authorize (Roles = "Boss, Admin")]
 	[Route("changepassword")]
 	public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordModel model)
 	{
@@ -96,6 +91,7 @@ public class AuthenticateController : ControllerBase
 	}
 
 	[HttpPut]
+	[Authorize (Roles = "Boss, Admin")]
 	[Route("changerole")]
 	public async Task<IActionResult> ChangeRole([FromBody] ChangeRoleModel model)
 	{

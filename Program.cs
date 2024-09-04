@@ -54,7 +54,7 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddDbContext<CorreosContext>(options =>
 		{
-		options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+		options.UseSqlServer(Environment.GetEnvironmentVariable("CONNECTION_STRING"));
 
 		});
 
@@ -77,13 +77,19 @@ if (app.Environment.IsDevelopment())
 	app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (app.Environment.IsProduction())
+{
+	app.UseExceptionHandler("/Home/Error");
+	app.UseHttpsRedirection();
+	app.UseHsts();
+}
 
 app.UseCors();
 
-app.UseMiddleware<CheckUserIsActiveMiddleware>();
+
 
 app.UseAuthentication();
+app.UseMiddleware<CheckUserIsActiveMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();

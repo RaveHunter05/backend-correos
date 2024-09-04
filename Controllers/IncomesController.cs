@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
+
 using Microsoft.AspNetCore.Authorization;
 
 namespace correos_backend.Controllers
 {
+	[Authorize (Roles = "Boss, Admin, Manager")]
 	[Route("api/[controller]")]
 	[ApiController]
 	public class IncomesController : ControllerBase
@@ -40,11 +42,17 @@ namespace correos_backend.Controllers
 							Name = income.Service!.Name,
 							Code = income.Service!.Code
 							}).FirstOrDefault(),
+					CostCenter = group.Select(income => new
+							{
+							CostCenterId = income.CostCenterId,
+							Name = income.CostCenter!.Name,
+							Code = income.CostCenter!.Code
+							}).FirstOrDefault(),
 					ExecutedAmount = group.Sum(income => income.ExecutedAmount),
 					ProjectedAmount = group.Sum(income => income.ProjectedAmount)
 					})
 			.OrderByDescending(income => income.Date)
-			.ToListAsync();
+				.ToListAsync();
 
 			return Ok(incomesByDate);
 		}

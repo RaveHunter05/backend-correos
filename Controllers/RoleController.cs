@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace correos_backend.Controllers;
 
+
+[Authorize (Roles = "Boss, Admin")]
 [Route("api/[controller]")]
 [ApiController]
 public class RoleController : ControllerBase
@@ -21,6 +23,7 @@ public class RoleController : ControllerBase
 
 	// GET: api/RoleController
 	// To get all Roles
+	//
 	[HttpGet]
 	public Task<IEnumerable<IdentityRole>> Get()
 	{

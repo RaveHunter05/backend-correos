@@ -2,6 +2,9 @@
 bin/
 obj/
 
+# .environment variables file
+.env
+
 # Visual Studio Code specific files
 .vscode/
 
