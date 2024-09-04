@@ -6,11 +6,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Text;
 
 using dotenv.net;
+using correos_backend.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,7 +54,7 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddDbContext<CorreosContext>(options =>
 		{
-		options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+		options.UseSqlServer(Environment.GetEnvironmentVariable("CONNECTION_STRING"));
 
 		});
 
@@ -78,15 +77,38 @@ if (app.Environment.IsDevelopment())
 	app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (app.Environment.IsProduction())
+{
+	app.UseExceptionHandler("/Home/Error");
+	app.UseHttpsRedirection();
+	app.UseHsts();
+}
 
 app.UseCors();
 
+
+
 app.UseAuthentication();
+app.UseMiddleware<CheckUserIsActiveMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.MapGet("/security/getMessage", () => "Hello World!").RequireAuthorization();
+
+using (var scope = app.Services.CreateScope())
+{
+	var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+	var users = userManager.Users.ToList();
+
+	foreach (var user in users)
+	{
+		if (userManager.GetRolesAsync(user).Result.Count == 0)
+		{
+			userManager.AddToRoleAsync(user, "Manager").Wait();
+		}
+	}
+}
 
 app.Run();

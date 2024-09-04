@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace correos_backend.Controllers;
 
+
+[Authorize (Roles = "Boss, Admin")]
 [Route("api/[controller]")]
 [ApiController]
 public class RoleController : ControllerBase
@@ -16,6 +18,16 @@ public class RoleController : ControllerBase
 	{
 		_userManager = userManager;
 		_roleManager = roleManager;
+	}
+
+
+	// GET: api/RoleController
+	// To get all Roles
+	//
+	[HttpGet]
+	public Task<IEnumerable<IdentityRole>> Get()
+	{
+		return Task.FromResult(_roleManager.Roles.AsEnumerable());
 	}
 	
 
@@ -67,10 +79,11 @@ public class RoleController : ControllerBase
 		return BadRequest(result.Errors);
 	}
 
+
+
 	// PUT: api/RoleController/5/roleName
 	// Change a user's role
 	[HttpPut("change/{userId}/{roleName}")]
-	[Authorize(Roles = "admin")]
 	public async Task<ActionResult> ChangeUserRole(string userId, string roleName)
 	{
 		var user = await _userManager.FindByIdAsync(userId);

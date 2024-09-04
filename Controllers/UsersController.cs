@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace correos_backend.Controllers;
 
 
+[Authorize (Roles = "Boss, Admin")]
 [Route("api/[controller]")]
 [ApiController]
 public class UsersController : ControllerBase
@@ -20,12 +21,19 @@ public class UsersController : ControllerBase
 	[HttpGet]
 	public async Task<ActionResult> GetUsers()
 	{
-		var users = await _userManager.Users.GroupBy(user => new { user.Id, user.UserName, user.Email }).Select(group => new
+		var users = await _userManager.Users.Select(user => new UsersViewModel
+				{
+				Id = user.Id,
+				UserName = user.UserName,
+				Email = user.Email,
+				IsActive = user.IsActive,
+				}).ToListAsync();
+
+		foreach (var user in users)
 		{
-			Id = group.Key.Id,
-			UserName = group.Key.UserName,
-			Email = group.Key.Email
-		}).ToListAsync();
+			var role = await _userManager.GetRolesAsync(new ApplicationUser { Id = user.Id });
+			user.Role = string.Join(",", role);
+		}
 
 		return Ok(users);
 	}
@@ -45,12 +53,14 @@ public class UsersController : ControllerBase
 	[HttpGet("email/{email}")]
 	public async Task<ActionResult> GetUserByEmail(string email)
 	{
-		var user = await _userManager.FindByEmailAsync(email);
-		if (user == null)
+
+		IQueryable<ApplicationUser> query = _userManager.Users;
+
+		if (!string.IsNullOrEmpty(email))
 		{
-			return NotFound("User not found");
+			query = query.Where(entity => entity.Email.Contains(email));
 		}
-		return Ok(user);
+		return Ok(await query.ToListAsync());
 	}
 
 	[HttpDelete("{id}")]
@@ -70,19 +80,93 @@ public class UsersController : ControllerBase
 	}
 
 	[HttpPut("{id}")]
-	public async Task<ActionResult> UpdateUser(string id, [FromBody] ApplicationUser user)
+	public async Task<ActionResult> UpdateUser(string id, [FromBody] UpdateUserModel user)
 	{
 		var userToUpdate = await _userManager.FindByIdAsync(id);
 		if (userToUpdate == null)
 		{
 			return NotFound("User not found");
 		}
-		userToUpdate.UserName = user.UserName;
-		userToUpdate.Email = user.Email;
+		if (user.UserName != null)
+		{
+			userToUpdate.UserName = user.UserName;
+		}
+		if (user.Email != null)
+		{
+			userToUpdate.Email = user.Email;
+		}
 		var result = await _userManager.UpdateAsync(userToUpdate);
+
 		if (result.Succeeded)
 		{
+			if (user.Role != null)
+			{
+				var roles = await _userManager.GetRolesAsync(userToUpdate);
+				await _userManager.RemoveFromRolesAsync(userToUpdate, roles);
+				await _userManager.AddToRoleAsync(userToUpdate, user.Role);
+			}
 			return Ok("User updated");
+		}
+
+		return BadRequest(result.Errors);
+	}
+
+
+	// PUT: api/users/disable/5
+	// Disable a user
+	[HttpPut("disable/{id}")]
+	public async Task<ActionResult> DisableUser(string id)
+	{
+		var user = await _userManager.FindByIdAsync(id);
+		if (user == null)
+		{
+			return NotFound("User not found");
+		}
+
+		if (user.UserName == "admin")
+		{
+			return BadRequest("You can't disable the admin user");
+		}
+
+		if (user.IsActive == false)
+		{
+			return BadRequest("User is already disabled");
+		}
+
+		user.IsActive = false;
+		user.LockoutEnabled = true;
+		user.LockoutEnd = DateTime.Now.AddYears(100);
+		var result = await _userManager.UpdateAsync(user);
+		if (result.Succeeded)
+		{
+			return Ok("User disabled");
+		}
+		return BadRequest(result.Errors);
+	}
+
+	// PUT: api/users/enable/5
+	// Enable a user
+	[HttpPut("enable/{id}")]
+	public async Task<ActionResult> EnableUser(string id)
+	{
+		var user = await _userManager.FindByIdAsync(id);
+		if (user == null)
+		{
+			return NotFound("User not found");
+		}
+
+		if (user.IsActive == true)
+		{
+			return BadRequest("User is already enabled");
+		}
+
+		user.IsActive = true;
+		user.LockoutEnabled = false;
+		user.LockoutEnd = null;
+		var result = await _userManager.UpdateAsync(user);
+		if (result.Succeeded)
+		{
+			return Ok("User enabled");
 		}
 		return BadRequest(result.Errors);
 	}

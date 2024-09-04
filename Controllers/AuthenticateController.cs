@@ -1,15 +1,8 @@
 using correos_backend.Authentication;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
+
+using Microsoft.AspNetCore.Authorization;
 
 namespace correos_backend.Controllers;
 
@@ -37,14 +30,14 @@ public class AuthenticateController : ControllerBase
 	{
 		if (ModelState.IsValid)
 		{
-			var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, false, false);
+			var result = await _signInManager.PasswordSignInAsync(model.Username, model.Password, false, false);
 
-			if(result.Succeeded)
+			if (result.Succeeded)
 			{
-				var user = await _userManager.FindByEmailAsync(model.Email);
+				var user = await _userManager.FindByNameAsync(model.Username);
 				var roles = await _userManager.GetRolesAsync(user);
-				var token =  _jwtHelper.GenerateJwtToken(user.Id, user.Email);
-				return Ok(new {token, user, roles});
+				var token = _jwtHelper.GenerateJwtToken(user.Id, user.Email);
+				return Ok(new { token, user, roles });
 			}
 			return Unauthorized();
 
@@ -53,6 +46,7 @@ public class AuthenticateController : ControllerBase
 	}
 
 	[HttpPost]
+	[Authorize (Roles = "Boss, Admin")]
 	[Route("register")]
 	public async Task<IActionResult> Register([FromBody] RegisterModel model)
 	{
@@ -62,19 +56,15 @@ public class AuthenticateController : ControllerBase
 		ApplicationUser user = new ApplicationUser()
 		{
 			Email = model.Email,
-			      SecurityStamp = Guid.NewGuid().ToString(),
-			      UserName = model.Username
+		      	SecurityStamp = Guid.NewGuid().ToString(),
+		      	UserName = model.Username
 		};
 		var result = await _userManager.CreateAsync(user, model.Password);
 
-		Console.WriteLine(result);
+		// Assign a default role for a new user
 		if (result.Succeeded)
 		{
- var defaultrole = _roleManager.FindByNameAsync("Default").Result;  
- if (defaultrole != null)
- {
-	 IdentityResult roleResult = await _userManager.AddToRoleAsync(user, defaultrole.Name);
- }
+			IdentityResult roleResult = await _userManager.AddToRoleAsync(user, "Manager");
 			return Ok(new Response { Status = "Success", Message = "User created successfully!" });
 		}
 		return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed! Please check user details and try again." });
@@ -82,6 +72,7 @@ public class AuthenticateController : ControllerBase
 	}
 
 	[HttpPut]
+	[Authorize (Roles = "Boss, Admin")]
 	[Route("changepassword")]
 	public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordModel model)
 	{
@@ -91,8 +82,8 @@ public class AuthenticateController : ControllerBase
 		var user = await _userManager.FindByEmailAsync(model.Email);
 		if (user == null)
 			return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User not found" });
-
-		var result = await _userManager.ChangePasswordAsync(user, model.OldPassword, model.NewPassword);
+		var code = await _userManager.GeneratePasswordResetTokenAsync(user);
+		var result = await _userManager.ResetPasswordAsync(user, code, model.NewPassword);
 		if (result.Succeeded)
 			return Ok(new Response { Status = "Success", Message = "Password changed successfully!" });
 
@@ -100,6 +91,7 @@ public class AuthenticateController : ControllerBase
 	}
 
 	[HttpPut]
+	[Authorize (Roles = "Boss, Admin")]
 	[Route("changerole")]
 	public async Task<IActionResult> ChangeRole([FromBody] ChangeRoleModel model)
 	{

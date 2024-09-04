@@ -1,14 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace correos_backend.Controllers
 {
+	[Authorize (Roles = "Boss, Admin, Manager")]
 	[Route("api/[controller]")]
 	[ApiController]
 	public class ExpensesController : ControllerBase
@@ -33,26 +31,26 @@ namespace correos_backend.Controllers
 						Date = expense.Date,
 						ExpenseId = expense.ExpenseId,
 						})
-				.Select(group => new {
-						Date = group.Key.Date,
-						ExpenseId = group.Key.ExpenseId,
-						CostCenter = group.Select(expense => new {
-								CostCenterId = expense.CostCenterId,
-								Name = expense.CostCenter!.Name,
-								Code = expense.CostCenter!.Code
-								}).FirstOrDefault(),
-						Spent = group.Select(expense => new {
-								SpentId = expense.SpentId,
-								Category = expense.Spent!.Category,
-								Denomination = expense.Spent!.Denomination
-								}).FirstOrDefault(),
-						ProjectedAmount = group.Sum(expense => expense.ProjectedAmount),
-						ExecutedAmount = group.Sum(expense => expense.ExecutedAmount),
-						})
-				.OrderByDescending(x => x.Date)
+			.Select(group => new {
+					Date = group.Key.Date,
+					ExpenseId = group.Key.ExpenseId,
+					CostCenter = group.Select(expense => new {
+							CostCenterId = expense.CostCenterId,
+							Name = expense.CostCenter!.Name,
+							Code = expense.CostCenter!.Code
+							}).FirstOrDefault(),
+					Spent = group.Select(expense => new {
+							SpentId = expense.SpentId,
+							Category = expense.Spent!.Category,
+							Denomination = expense.Spent!.Denomination
+							}).FirstOrDefault(),
+					ProjectedAmount = group.Sum(expense => expense.ProjectedAmount),
+					ExecutedAmount = group.Sum(expense => expense.ExecutedAmount),
+					})
+			.OrderByDescending(x => x.Date)
 				.ToListAsync();
 
-				return Ok(expensesData);
+			return Ok(expensesData);
 		}
 
 		// GET: api/Expenses by months, costcenter

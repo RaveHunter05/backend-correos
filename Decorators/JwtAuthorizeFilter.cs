@@ -18,6 +18,9 @@ public class JwtAuthorizeFilter : IAuthorizationFilter
         var hasAuthorizeAttribute = context.ActionDescriptor.EndpointMetadata
             .Any(em => em is AuthorizeAttribute);
 
+    	Console.BackgroundColor = ConsoleColor.DarkGreen;
+	Console.WriteLine("Authorize Attribute: " + hasAuthorizeAttribute);
+
         if (hasAuthorizeAttribute)
         {
             var token = context.HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
