@@ -38,6 +38,8 @@ public class JwtAuthorizeFilter : IAuthorizationFilter
                 }
                 catch (Exception)
                 {
+			Console.BackgroundColor = ConsoleColor.DarkRed;
+			Console.WriteLine("User Unauthorized");
                     context.Result = new UnauthorizedResult();
                 }
             }

@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 namespace correos_backend.Controllers;
 
 
-[Authorize (Roles = "Boss, Admin")]
 [Route("api/[controller]")]
 [ApiController]
 public class UsersController : ControllerBase

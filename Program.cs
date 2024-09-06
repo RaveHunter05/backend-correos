@@ -17,6 +17,16 @@ DotEnv.Load();
 
 // Add services to the container.
 
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: "AllowAll",
+        policy =>
+        {
+		policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+        });
+});
+
 builder.Services.AddControllers().AddNewtonsoftJson(options =>
 		options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
 		);
@@ -59,7 +69,7 @@ builder.Services.AddDbContext<CorreosContext>(options =>
 		});
 
 	builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-	.AddEntityFrameworkStores<CorreosContext>()
+.AddEntityFrameworkStores<CorreosContext>()
 	.AddDefaultTokenProviders();
 
 	builder.Services.AddScoped<JwtSecurityTokenHandlerWrapper>();
@@ -84,17 +94,16 @@ if (app.Environment.IsProduction())
 	app.UseHsts();
 }
 
-app.UseCors();
+	app.UseCors("AllowAll");
 
 
+	app.UseAuthentication();
+	app.UseMiddleware<CheckUserIsActiveMiddleware>();
+	app.UseAuthorization();
 
-app.UseAuthentication();
-app.UseMiddleware<CheckUserIsActiveMiddleware>();
-app.UseAuthorization();
+	app.MapControllers();
 
-app.MapControllers();
-
-app.MapGet("/security/getMessage", () => "Hello World!").RequireAuthorization();
+	app.MapGet("/security/getMessage", () => "Hello World!").RequireAuthorization();
 
 using (var scope = app.Services.CreateScope())
 {
