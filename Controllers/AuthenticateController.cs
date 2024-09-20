@@ -36,7 +36,7 @@ public class AuthenticateController : ControllerBase
 			{
 				var user = await _userManager.FindByNameAsync(model.Username);
 				var roles = await _userManager.GetRolesAsync(user);
-				var token = _jwtHelper.GenerateJwtToken(user.Id, user.Email);
+				var token = _jwtHelper.GenerateJwtToken(user.Id, roles.ToString());
 				return Ok(new { token, user, roles });
 			}
 			return Unauthorized();

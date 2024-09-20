@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace correos_backend.Controllers
 {
 	[Route("api/[controller]")]
+	[Authorize]
 	[ApiController]
 	public class CostCentersController : ControllerBase
 	{
