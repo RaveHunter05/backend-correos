@@ -18,6 +18,7 @@ public class JwtAuthorizeFilter : IAuthorizationFilter
         var hasAuthorizeAttribute = context.ActionDescriptor.EndpointMetadata
             .Any(em => em is AuthorizeAttribute);
 
+	// no llega hasta aquí
     	Console.BackgroundColor = ConsoleColor.DarkGreen;
 	Console.WriteLine("Authorize Attribute: " + hasAuthorizeAttribute);
 
@@ -38,6 +39,8 @@ public class JwtAuthorizeFilter : IAuthorizationFilter
                 }
                 catch (Exception)
                 {
+			Console.BackgroundColor = ConsoleColor.DarkRed;
+			Console.WriteLine("User Unauthorized");
                     context.Result = new UnauthorizedResult();
                 }
             }

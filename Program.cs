@@ -1,5 +1,6 @@
 global using correos_backend.Helpers;
 global using correos_backend.Decorators;
+global using correos_backend.Constants;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -16,6 +17,16 @@ var builder = WebApplication.CreateBuilder(args);
 DotEnv.Load();
 
 // Add services to the container.
+
+
+builder.Services.AddCors(options =>
+		{
+		options.AddPolicy(name: "AllowAll",
+				policy =>
+				{
+				policy.AllowCredentials().AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+				});
+		});
 
 builder.Services.AddControllers().AddNewtonsoftJson(options =>
 		options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
@@ -43,12 +54,27 @@ builder.Services.AddAuthentication(options =>
 			};
 			});
 
+
+// configure the default authorization policy
 builder.Services.AddAuthorization(options =>
 		{
 		options.DefaultPolicy = new AuthorizationPolicyBuilder().
 		AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme).
 		RequireAuthenticatedUser().
 		Build();
+
+		options.AddPolicy("RequireAdmin", policy =>
+				{
+				policy.RequireRole("Admin");
+				});
+		options.AddPolicy("RequireBoss", policy =>
+				{
+				policy.RequireRole("Boss");
+				});
+		options.AddPolicy("Manager", policy =>
+				{
+				policy.RequireRole("Manager");
+				});
 		}
 		);
 
@@ -59,11 +85,13 @@ builder.Services.AddDbContext<CorreosContext>(options =>
 		});
 
 	builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-	.AddEntityFrameworkStores<CorreosContext>()
+.AddEntityFrameworkStores<CorreosContext>()
 	.AddDefaultTokenProviders();
 
+	// esto puede ser el error
 	builder.Services.AddScoped<JwtSecurityTokenHandlerWrapper>();
 
+	// maybe esto
 	builder.Services.AddControllersWithViews(options => {
 			options.Filters.Add(typeof(JwtAuthorizeFilter));});
 
@@ -83,10 +111,6 @@ if (app.Environment.IsProduction())
 	app.UseHttpsRedirection();
 	app.UseHsts();
 }
-
-app.UseCors();
-
-
 
 app.UseAuthentication();
 app.UseMiddleware<CheckUserIsActiveMiddleware>();

@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace correos_backend.Controllers
 {
-	[Authorize (Roles = "Boss, Admin, Manager")]
 	[Route("api/[controller]")]
 	[ApiController]
 	public class IncomesController : ControllerBase
@@ -19,6 +18,7 @@ namespace correos_backend.Controllers
 
 		// GET: api/Incomes
 		[HttpGet]
+		[Authorize]
 		public async Task<ActionResult<IEnumerable<Income>>> GetIncomes()
 		{
 			if (_context.Incomes == null)

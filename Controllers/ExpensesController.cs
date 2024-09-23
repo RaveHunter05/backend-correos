@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace correos_backend.Controllers
 {
-	[Authorize (Roles = "Boss, Admin, Manager")]
 	[Route("api/[controller]")]
+	[Authorize]
 	[ApiController]
 	public class ExpensesController : ControllerBase
 	{
@@ -53,6 +53,7 @@ namespace correos_backend.Controllers
 			return Ok(expensesData);
 		}
 
+		// expenses inform by cost center
 		// GET: api/Expenses by months, costcenter
 		[HttpGet("month/costCenter/{initialDate}/{endDate}")]
 

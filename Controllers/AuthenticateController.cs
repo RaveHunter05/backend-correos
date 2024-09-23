@@ -36,7 +36,7 @@ public class AuthenticateController : ControllerBase
 			{
 				var user = await _userManager.FindByNameAsync(model.Username);
 				var roles = await _userManager.GetRolesAsync(user);
-				var token = _jwtHelper.GenerateJwtToken(user.Id, user.Email);
+				var token = _jwtHelper.GenerateJwtToken(user.Id, roles.ToString());
 				return Ok(new { token, user, roles });
 			}
 			return Unauthorized();
@@ -46,7 +46,6 @@ public class AuthenticateController : ControllerBase
 	}
 
 	[HttpPost]
-	[Authorize (Roles = "Boss, Admin")]
 	[Route("register")]
 	public async Task<IActionResult> Register([FromBody] RegisterModel model)
 	{
@@ -72,7 +71,6 @@ public class AuthenticateController : ControllerBase
 	}
 
 	[HttpPut]
-	[Authorize (Roles = "Boss, Admin")]
 	[Route("changepassword")]
 	public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordModel model)
 	{
@@ -91,7 +89,6 @@ public class AuthenticateController : ControllerBase
 	}
 
 	[HttpPut]
-	[Authorize (Roles = "Boss, Admin")]
 	[Route("changerole")]
 	public async Task<IActionResult> ChangeRole([FromBody] ChangeRoleModel model)
 	{
