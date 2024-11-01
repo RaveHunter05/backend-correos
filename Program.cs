@@ -12,6 +12,8 @@ using System.Text;
 using dotenv.net;
 using correos_backend.Middleware;
 
+using correos_backend.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 DotEnv.Load();
@@ -35,6 +37,8 @@ builder.Services.AddControllers().AddNewtonsoftJson(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddScoped<CsvService>();
+builder.Services.AddScoped<CurrentTimeService>();
 
 builder.Services.AddAuthentication(options =>
 		{

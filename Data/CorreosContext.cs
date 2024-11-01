@@ -40,4 +40,5 @@ public class CorreosContext : IdentityDbContext<ApplicationUser>
 
 	public DbSet<Income> Incomes {get; set;}
 	public DbSet<Expense> Expenses {get; set;}
+	public DbSet<Report> Reports {get; set;}
 }
