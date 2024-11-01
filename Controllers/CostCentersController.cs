@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 
+using correos_backend.Services;
+
 namespace correos_backend.Controllers
 {
 	[Route("api/[controller]")]
@@ -10,10 +12,14 @@ namespace correos_backend.Controllers
 	public class CostCentersController : ControllerBase
 	{
 		private readonly CorreosContext _context;
+		private readonly CsvService _csvService;
+		private readonly CurrentTimeService _currentTimeService;
 
-		public CostCentersController(CorreosContext context)
+		public CostCentersController(CorreosContext context, CsvService csvService, CurrentTimeService currentTimeService)
 		{
 			_context = context;
+			_csvService = csvService;
+			_currentTimeService = currentTimeService;
 		}
 
 		// GET: api/CostCenters
@@ -103,6 +109,28 @@ namespace correos_backend.Controllers
 			await _context.SaveChangesAsync();
 
 			return CreatedAtAction("GetCostCenter", new { id = costCenter.CostCenterId }, costCenter);
+		}
+
+		// bulk insert
+		// POST: api/CostCenters/bulk
+		[HttpPost("bulk")]
+		public async Task<ActionResult<CostCenter>> PostCostCenters(IFormFile file)
+		{
+			if (_context.CostCenters == null)
+			{
+				return Problem("Entity set 'CuentasContext'  is null.");
+			}
+
+			var costcenters = _csvService.ReadCsvFile<CostCenter>(file.OpenReadStream()).ToList();
+
+			foreach(var costcenter in costcenters) {
+				costcenter.Date = _currentTimeService.GetCurrentTime();
+			}
+
+			_context.CostCenters.AddRange(costcenters);
+			await _context.SaveChangesAsync();
+
+			return CreatedAtAction("PostCostCenters", costcenters);
 		}
 
 		// DELETE: api/CostCenters/5

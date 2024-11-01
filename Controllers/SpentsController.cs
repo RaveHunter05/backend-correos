@@ -3,18 +3,23 @@ using Microsoft.EntityFrameworkCore;
 
 using Microsoft.AspNetCore.Authorization;
 
+using correos_backend.Services;
+
 namespace correos_backend.Controllers
 {
 	[Route("api/[controller]")]
-	[Authorize]
 	[ApiController]
 	public class SpentsController : ControllerBase
 	{
 		private readonly CorreosContext _context;
+		private readonly CsvService _csvService;
+		private readonly CurrentTimeService _currentTimeService;
 
-		public SpentsController(CorreosContext context)
+		public SpentsController(CorreosContext context, CsvService csvService, CurrentTimeService currentTimeService)
 		{
 			_context = context;
+			_csvService = csvService;
+			_currentTimeService = currentTimeService;
 		}
 
 		// GET: api/Spents
@@ -59,6 +64,27 @@ namespace correos_backend.Controllers
 			}
 
 			return await query.ToListAsync();
+		}
+
+		//bulk insert
+		[HttpPost("bulk")]
+		public async Task<ActionResult<IEnumerable<Spent>>> PostSpents(IFormFile file)
+		{
+			if (_context.Spents == null)
+			{
+				return Problem("Entity set 'CorreosContext.Spents'  is null.");
+			}
+			var spents =  _csvService.ReadCsvFile<Spent>(file.OpenReadStream());
+
+			foreach (var spent in spents)
+			{
+				spent.Date = _currentTimeService.GetCurrentTime();
+			}
+
+			_context.Spents.AddRange(spents);
+			await _context.SaveChangesAsync();
+
+			return CreatedAtAction("PostSpents", spents);
 		}
 
 		// PUT: api/Spents/5

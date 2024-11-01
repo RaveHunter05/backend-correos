@@ -302,22 +302,6 @@ namespace correos_backend.Controllers
 		}
 
 
-		[HttpPost("bulk")] public async Task<ActionResult<IEnumerable<Expense>>> PostExpenseBulk(IEnumerable<Expense> expenses) {
-			if (expenses == null || !expenses.Any())
-			{
-				return BadRequest("No incomes provided for bulk creation.");
-			}
-			if (_context.Expenses == null)
-			{
-				return Problem("Entity set 'CorreosContext.Expenses'  is null.");
-			}
-
-			_context.Expenses.AddRange(expenses);
-			await _context.SaveChangesAsync();
-
-			return CreatedAtAction("GetExpense", expenses);		}
-
-
 		// DELETE: api/Expenses/5
 		[HttpDelete("{id}")]
 		public async Task<IActionResult> DeleteExpense(int id)

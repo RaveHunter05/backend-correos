@@ -7,7 +7,7 @@ public class CostCenter
 	public string OfficeCode {get; set;}
 	public string Code {get; set;}
 	public string Name {get; set;}
-	public DateTime Date {get; set;}
+	public DateTime? Date {get; set;}
 
 	public ICollection <Expense> Expenses {get;} = new List<Expense>(); 
 	public ICollection <Income> Incomes {get;} = new List<Income>();

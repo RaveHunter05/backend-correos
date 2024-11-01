@@ -2,19 +2,23 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 using Microsoft.AspNetCore.Authorization;
+using correos_backend.Services;
 
 namespace correos_backend.Controllers
 {
 	[Route("api/[controller]")]
-	[Authorize]
 	[ApiController]
 	public class ServicesController : ControllerBase
 	{
 		private readonly CorreosContext _context;
+		private readonly CsvService _csvService;
+		private readonly CurrentTimeService _currentTimeService;
 
-		public ServicesController(CorreosContext context)
+		public ServicesController(CorreosContext context, CsvService csvService, CurrentTimeService currentTimeService)
 		{
 			_context = context;
+			_csvService = csvService;
+			_currentTimeService = currentTimeService;
 		}
 
 		// GET: api/Services
@@ -104,6 +108,29 @@ namespace correos_backend.Controllers
 			await _context.SaveChangesAsync();
 
 			return CreatedAtAction("GetService", new { id = service.ServiceId }, service);
+		}
+
+		// bulk add
+		[HttpPost("bulk")]
+		public async Task<ActionResult<Service>> PostServices(IFormFile file)
+		{
+			if (_context.Services == null)
+			{
+				return Problem("Entity set 'CorreosContext.Services'  is null.");
+			}
+			var services = _csvService.ReadCsvFile<Service>(file.OpenReadStream()).ToList();
+
+			foreach (var service in services)
+			{
+				service.Date = _currentTimeService.GetCurrentTime();
+			}
+
+			_context.Services.AddRange(services);
+
+			await _context.SaveChangesAsync();
+
+
+			return CreatedAtAction("PostServices", services);
 		}
 
 		// DELETE: api/Services/5
