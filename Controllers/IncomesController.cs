@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 
+using correos_backend.Services;
+
 using Microsoft.AspNetCore.Authorization;
 
 namespace correos_backend.Controllers
@@ -11,9 +13,14 @@ namespace correos_backend.Controllers
 	public class IncomesController : ControllerBase
 	{
 		private readonly CorreosContext _context;
-		public IncomesController(CorreosContext context)
+		private readonly CsvService _csvService;
+		private readonly CurrentTimeService _currentTimeService;
+
+		public IncomesController(CorreosContext context, CsvService csvService, CurrentTimeService currentTimeService)
 		{
 			_context = context;
+			_csvService = csvService;
+			_currentTimeService = currentTimeService;
 		}
 
 		// GET: api/Incomes
@@ -384,22 +391,23 @@ namespace correos_backend.Controllers
 		// POST: api/Incomes/bulk
 		// To bulk post
 		[HttpPost("bulk")]
-		public async Task<ActionResult<IList<Income>>> PostIncomesBulk(IList<Income> incomes)
+		public async Task<ActionResult<IList<Income>>> PostIncomesBulk(IFormFile file)
 		{
-			if (incomes == null || !incomes.Any())
-			{
-				return BadRequest("No incomes provided for bulk creation.");
-			}
-
 			if (_context.Incomes == null)
 			{
-				return Problem("Entity set 'CorreosContext.Incomes' is null.");
+				return Problem("Entity set 'CorreosContext.Incomes'  is null.");
+			}
+
+			var incomes =  _csvService.ReadCsvFile<Income>(file.OpenReadStream()).ToList();
+			foreach (var income in incomes)
+			{
+				income.Date = _currentTimeService.GetCurrentTime();
 			}
 
 			_context.Incomes.AddRange(incomes);
 			await _context.SaveChangesAsync();
 
-			return CreatedAtAction("GetIncomes", incomes);
+			return CreatedAtAction("PstIncomesBulk", incomes);
 		}
 
 		// DELETE: api/Incomes/5

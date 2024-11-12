@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 
+using correos_backend.Services;
+
 using Microsoft.AspNetCore.Authorization;
 
 namespace correos_backend.Controllers
@@ -12,10 +14,14 @@ namespace correos_backend.Controllers
 	public class ExpensesController : ControllerBase
 	{
 		private readonly CorreosContext _context;
+		private readonly CsvService _csvService;
+		private readonly CurrentTimeService _currentTimeService;
 
-		public ExpensesController(CorreosContext context)
+		public ExpensesController(CorreosContext context, CsvService csvService, CurrentTimeService currentTimeService)
 		{
 			_context = context;
+			_csvService = csvService;
+			_currentTimeService = currentTimeService;
 		}
 
 		// GET: api/Expenses
@@ -299,6 +305,28 @@ namespace correos_backend.Controllers
 			await _context.SaveChangesAsync();
 
 			return CreatedAtAction("GetExpense", new { id = expense.ExpenseId }, expense);
+		}
+
+
+		// bulk insert
+		[HttpPost("bulk")]
+		public async Task<ActionResult<Expense>> PostExpensesBulk(IFormFile file)
+		{
+			if (_context.Expenses == null)
+			{
+				return Problem("Entity set 'CorreosContext.Expenses'  is null.");
+			}
+			var expenses = _csvService.ReadCsvFile<Expense>(file.OpenReadStream()).ToList();
+			foreach (var expense in expenses)
+			{
+				expense.Date = _currentTimeService.GetCurrentTime();
+			}
+
+			_context.Expenses.AddRange(expenses);
+
+			await _context.SaveChangesAsync();
+
+			return CreatedAtAction("PostExpensesBulk", expenses);
 		}
 
 
