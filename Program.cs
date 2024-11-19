@@ -37,7 +37,9 @@ builder.Services.AddControllers().AddNewtonsoftJson(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Services
 builder.Services.AddScoped<CsvService>();
+builder.Services.AddScoped<XLSXService>();
 builder.Services.AddScoped<CurrentTimeService>();
 
 builder.Services.AddAuthentication(options =>
