@@ -10,6 +10,7 @@ public class CorreosContext : IdentityDbContext<ApplicationUser>
 	public DbSet<Spent> Spents {get; set;}
 	public DbSet<Service> Services {get; set;}
 	public DbSet<CostCenter> CostCenters {get; set;}
+	public DbSet<Budget> Budgets {get; set;}
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
@@ -34,6 +35,11 @@ public class CorreosContext : IdentityDbContext<ApplicationUser>
 			.WithMany(s => s.Expenses)
 			.HasForeignKey(i => i.CostCenterId);
 
+		modelBuilder.Entity<Comment>()
+			.HasOne<Budget>(i => i.Budget)
+			.WithMany(s => s.Comments)
+			.HasForeignKey(i => i.BudgetId);
+
 
 		base.OnModelCreating(modelBuilder);
 	}
@@ -41,4 +47,6 @@ public class CorreosContext : IdentityDbContext<ApplicationUser>
 	public DbSet<Income> Incomes {get; set;}
 	public DbSet<Expense> Expenses {get; set;}
 	public DbSet<Report> Reports {get; set;}
+	public DbSet<Comment> Comments {get; set;}
+
 }
