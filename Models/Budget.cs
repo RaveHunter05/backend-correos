@@ -1,3 +1,5 @@
+using correos_backend.Models.Enums;
+
 public class Budget
 {
 	public int BudgetId {get; set;}
@@ -7,23 +9,17 @@ public class Budget
 	public string BudgetType {get; set;}
 
 	public string Title {get; set;}
-	// select status between "Draft", "Approved", "Rejected"
-	public string Status {get; set;}
 	public string Description {get; set;}
 
-	public string BudgetDocumentLink {get; set;}
+	// select status between "Draft", "Approved", "Rejected"
+	public ApprovalStatus ApprovalStatus {get; set;}
 
-	// sugested data
-	// public double Amount {get; set;}
-	// public double Balance {get; set;}
-	// public double Total {get; set;}
-	// public double TotalExpense {get; set;}
-	// public double TotalIncome {get; set;}
-	// public double TotalBudget {get; set;}
-	// public double TotalBalance {get; set;}
-	// public double TotalTotal {get; set;}
+	public string FileName {get; set;}
+	public string FileUrl {get; set;}
+	public long? FileSize {get; set;}
 
 	public DateTime ModifiedDate {get; set;}
+	// created at
 	public DateTime Date {get; set;}
 
 
