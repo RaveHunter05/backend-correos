@@ -104,6 +104,8 @@ namespace correos_backend.Controllers
 								Executed = mGroup.Sum(m => m.Executed),
 								Projected = mGroup.Sum(m => m.Projected)
 								}),
+						Executed = expense.Month.Sum(x => x.Executed),
+						Projected = expense.Month.Sum(x => x.Projected),
 						Absolute = expense.Month.Sum(x => x.Executed) - expense.Month.Sum(x => x.Projected),
 						Percentual = expense.Month.Sum(x => x.Projected)  == 0 ? 0 : Math.Round(((expense.Month.Sum(x => x.Executed) - expense.Month.Sum(x => x.Projected)) / expense.Month.Sum(x => x.Projected) * 100), 2)
 
@@ -170,6 +172,8 @@ namespace correos_backend.Controllers
 								Executed = mGroup.Sum(m => m.Executed),
 								Projected = mGroup.Sum(m => m.Projected),
 								}),
+						Executed = expense.Month.Sum(m => m.Executed),
+						Projected = expense.Month.Sum(m => m.Projected),
 						Absolute = expense.Month.Sum(m => m.Executed) - expense.Month.Sum(m => m.Projected),
 						Percentual = expense.Month.Sum(m => m.Projected) == 0 ? 0 : Math.Round((((expense.Month.Sum(m => m.Executed) - expense.Month.Sum(m => m.Projected)) / expense.Month.Sum(m => m.Projected)) * 100) , 2)
 						});
@@ -221,6 +225,8 @@ namespace correos_backend.Controllers
 								Executed = mGroup.Sum(m => m.Executed),
 								Projected = mGroup.Sum(m => m.Projected),
 								}),
+						Executed = expense.Month.Sum(m => m.Executed),
+						Projected = expense.Month.Sum(m => m.Projected),
 						Absolute = expense.Month.Sum(m => m.Executed) - expense.Month.Sum(m => m.Projected),
 						Percentual = expense.Month.Sum(m => m.Projected) == 0 ? 0 : Math.Round((((expense.Month.Sum(m => m.Executed) - expense.Month.Sum(m => m.Projected)) / expense.Month.Sum(m => m.Projected)) * 100) , 2)
 						});
