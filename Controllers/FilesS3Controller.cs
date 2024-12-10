@@ -23,7 +23,20 @@ public class FilesS3Controller : ControllerBase
 		{
 			return BadRequest("File name is required");
 		}
-		var url = _s3Service.GeneratePresignedUrl(fileName, 10);
+
+		var hashName = _s3Service.GenerateHashName(fileName);
+		var url = _s3Service.GeneratePutPresignedUrl(hashName, 10);
+		return Ok(new { hashName, url });
+	}
+
+	[HttpGet("download")]
+	public IActionResult GeneratePresignedUrlDownload(string fileName)
+	{
+		if(string.IsNullOrEmpty(fileName))
+		{
+			return BadRequest("File name is required");
+		}
+		var url = _s3Service.GenerateGetPresignedUrl(fileName, 10);
 		return Ok(new { url });
 	}
 

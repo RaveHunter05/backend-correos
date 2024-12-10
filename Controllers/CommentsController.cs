@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
+
 
 using Microsoft.AspNetCore.Authorization;
 
@@ -20,10 +22,13 @@ namespace correos_backend.Controllers
 		private readonly CurrentTimeService _currentTimeService;
 		private readonly CorreosContext _context;
 
-		public CommentsController(CorreosContext context, CurrentTimeService currentTimeService)
+		private readonly UserManager<IdentityUser> _userManager;
+
+		public CommentsController(CorreosContext context, CurrentTimeService currentTimeService, UserManager<IdentityUser> userManager)
 		{
 			_context = context;
 			_currentTimeService = currentTimeService;
+			_userManager = userManager;
 		}
 
 		// GET: api/Comments
@@ -101,8 +106,11 @@ namespace correos_backend.Controllers
 				return BadRequest("Reason is required");
 			}
 
-			comment.CreatedById = User.Identity.Name;
-			comment.CreatorUsername = User.Identity.Name;
+			var creatorID = User.Identity.Name;
+			comment.CreatedById = creatorID;
+			var creator = await _userManager.FindByIdAsync(creatorID);
+
+			comment.CreatorUsername = creator.UserName;
 
 			comment.Date = _currentTimeService.GetCurrentTime();
 

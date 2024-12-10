@@ -42,6 +42,8 @@ public class JwtAuthorizeFilter : IAuthorizationFilter
             context.HttpContext.Items["UserId"] = userId;
             context.HttpContext.Items["Roles"] = roles;
 
+	    context.HttpContext.User = claimsPrincipal;
+
             Console.WriteLine($"User ID: {userId}");
             Console.WriteLine($"Roles: {string.Join(",", roles)}");
 

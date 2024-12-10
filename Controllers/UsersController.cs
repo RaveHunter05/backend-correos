@@ -3,11 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 
+using correos_backend.Attributes;
+
 namespace correos_backend.Controllers;
 
 
 [Route("api/[controller]")]
 [ApiController]
+[JwtAuthorize("Admin", "Boss")]
 public class UsersController : ControllerBase
 {
 	private readonly UserManager<IdentityUser> _userManager;

@@ -25,6 +25,7 @@ public class Budget
 
 	// keys
 	public string? CreatedById {get; set;}
+	public string? CreatedByName {get; set;}
 
 	public ICollection<Comment> Comments {get;} = new List<Comment>();
 

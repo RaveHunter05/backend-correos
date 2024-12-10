@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 using correos_backend.Attributes;
 
@@ -19,10 +20,12 @@ namespace correos_backend.Controllers
 	public class BudgetsController : ControllerBase
 	{
 		private readonly CorreosContext _context;
+		private readonly UserManager<IdentityUser> _userManager;
 
-		public BudgetsController(CorreosContext context)
+		public BudgetsController(CorreosContext context, UserManager<IdentityUser> userManager)
 		{
 			_context = context;
+			_userManager = userManager;
 		}
 
 		// GET: api/Budgets
@@ -36,6 +39,18 @@ namespace correos_backend.Controllers
 			}
 
 			return  await _context.Budgets.Include(budget => budget.Comments).ToListAsync();
+		}
+
+		// Get by CreatedById
+		[HttpGet("user/{id}")]
+		public async Task<ActionResult<IEnumerable<Budget>>> GetBudgetsByUser(string id)
+		{
+			if (_context.Budgets == null)
+			{
+				return NotFound();
+			}
+
+			return await _context.Budgets.Where(budget => budget.CreatedById == id).ToListAsync();
 		}
 
 		// GET: api/Budgets/5
@@ -117,10 +132,13 @@ namespace correos_backend.Controllers
 				budget.ApprovalStatus = ApprovalStatus.Pending;
 			}
 			// @TODO: change later 
-			if (budget.CreatedById == null)
-			{
-				budget.CreatedById = "1";
-			}
+			var creatorId = User.Identity.Name;
+
+			budget.CreatedById = creatorId;
+
+			var user = await _userManager.FindByIdAsync(creatorId);
+
+			budget.CreatedByName = user?.UserName;
 
 			// @TODO Add document link to the budget
 			_context.Budgets.Add(budget);
