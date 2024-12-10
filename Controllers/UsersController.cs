@@ -10,9 +10,9 @@ namespace correos_backend.Controllers;
 [ApiController]
 public class UsersController : ControllerBase
 {
-	private readonly UserManager<ApplicationUser> _userManager;
+	private readonly UserManager<IdentityUser> _userManager;
 
-	public UsersController(UserManager<ApplicationUser> userManager)
+	public UsersController(UserManager<IdentityUser> userManager)
 	{
 		_userManager = userManager;
 	}
@@ -25,12 +25,11 @@ public class UsersController : ControllerBase
 				Id = user.Id,
 				UserName = user.UserName,
 				Email = user.Email,
-				IsActive = user.IsActive,
 				}).ToListAsync();
 
 		foreach (var user in users)
 		{
-			var role = await _userManager.GetRolesAsync(new ApplicationUser { Id = user.Id });
+			var role = await _userManager.GetRolesAsync(new IdentityUser { Id = user.Id });
 			user.Role = string.Join(",", role);
 		}
 
@@ -53,7 +52,7 @@ public class UsersController : ControllerBase
 	public async Task<ActionResult> GetUserByEmail(string email)
 	{
 
-		IQueryable<ApplicationUser> query = _userManager.Users;
+		IQueryable<IdentityUser> query = _userManager.Users;
 
 		if (!string.IsNullOrEmpty(email))
 		{
@@ -127,12 +126,6 @@ public class UsersController : ControllerBase
 			return BadRequest("You can't disable the admin user");
 		}
 
-		if (user.IsActive == false)
-		{
-			return BadRequest("User is already disabled");
-		}
-
-		user.IsActive = false;
 		user.LockoutEnabled = true;
 		user.LockoutEnd = DateTime.Now.AddYears(100);
 		var result = await _userManager.UpdateAsync(user);
@@ -154,12 +147,7 @@ public class UsersController : ControllerBase
 			return NotFound("User not found");
 		}
 
-		if (user.IsActive == true)
-		{
-			return BadRequest("User is already enabled");
-		}
 
-		user.IsActive = true;
 		user.LockoutEnabled = false;
 		user.LockoutEnd = null;
 		var result = await _userManager.UpdateAsync(user);

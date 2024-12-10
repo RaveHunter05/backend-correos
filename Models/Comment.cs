@@ -1,8 +1,10 @@
 public class Comment
 {
 	public int CommentId {get; set;}
-	public string CreatedById {get; set;}
+	public string? CreatedById {get; set;}
+	public string? CreatorUsername {get; set;}
 	public string CommentText {get; set;}
+	public string Reason {get; set;}
 
 	public int BudgetId {get; set;}
 

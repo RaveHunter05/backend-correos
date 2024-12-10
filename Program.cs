@@ -1,5 +1,4 @@
 global using correos_backend.Helpers;
-global using correos_backend.Decorators;
 global using correos_backend.Constants;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -10,25 +9,16 @@ using Microsoft.EntityFrameworkCore;
 using System.Text;
 
 using dotenv.net;
-using correos_backend.Middleware;
 
 using correos_backend.Services;
+
+using correos_backend.Decorators;
 
 var builder = WebApplication.CreateBuilder(args);
 
 DotEnv.Load();
 
 // Add services to the container.
-
-
-builder.Services.AddCors(options =>
-		{
-		options.AddPolicy(name: "AllowAll",
-				policy =>
-				{
-				policy.AllowCredentials().AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-				});
-		});
 
 builder.Services.AddControllers().AddNewtonsoftJson(options =>
 		options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
@@ -42,21 +32,27 @@ builder.Services.AddScoped<CsvService>();
 builder.Services.AddScoped<XLSXService>();
 builder.Services.AddScoped<CurrentTimeService>();
 
+builder.Services.AddScoped<S3Service>();
+
 builder.Services.AddAuthentication(options =>
 		{
 		options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
 		options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 		}).AddJwtBearer(options =>
 			{
-			options.RequireHttpsMetadata = false;
 			options.SaveToken = true;
+			options.RequireHttpsMetadata = false;
 			options.TokenValidationParameters = new TokenValidationParameters
 			{
+			ValidateIssuer = true,
+			ValidateAudience = true,
 			ValidateIssuerSigningKey = true,
+			ValidateLifetime = true,
 			ValidIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER"),
 			ValidAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE"),
-			IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET"))),
-			ClockSkew = TimeSpan.Zero
+			IssuerSigningKey = new SymmetricSecurityKey(
+					Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET")!)
+					)
 			};
 			});
 
@@ -64,11 +60,6 @@ builder.Services.AddAuthentication(options =>
 // configure the default authorization policy
 builder.Services.AddAuthorization(options =>
 		{
-		options.DefaultPolicy = new AuthorizationPolicyBuilder().
-		AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme).
-		RequireAuthenticatedUser().
-		Build();
-
 		options.AddPolicy("RequireAdmin", policy =>
 				{
 				policy.RequireRole("Admin");
@@ -90,7 +81,7 @@ builder.Services.AddDbContext<CorreosContext>(options =>
 
 		});
 
-	builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+	builder.Services.AddIdentity<IdentityUser, IdentityRole>()
 .AddEntityFrameworkStores<CorreosContext>()
 	.AddDefaultTokenProviders();
 
@@ -98,10 +89,13 @@ builder.Services.AddDbContext<CorreosContext>(options =>
 	builder.Services.AddScoped<JwtSecurityTokenHandlerWrapper>();
 
 	// maybe esto
-	builder.Services.AddControllersWithViews(options => {
+	builder.Services.AddControllers(options => {
 			options.Filters.Add(typeof(JwtAuthorizeFilter));});
 
 	var app = builder.Build();
+
+
+	app.UseHttpsRedirection();
 
 
 	// Configure the HTTP request pipeline.
@@ -118,27 +112,17 @@ if (app.Environment.IsProduction())
 	app.UseHsts();
 }
 
-app.UseAuthentication();
-app.UseMiddleware<CheckUserIsActiveMiddleware>();
-app.UseAuthorization();
+	app.UseCors(policy => policy
+			.AllowAnyOrigin()
+			.AllowAnyMethod()
+			.AllowAnyHeader());
 
-app.MapControllers();
 
-app.MapGet("/security/getMessage", () => "Hello World!").RequireAuthorization();
+	app.UseAuthentication();
+	app.UseAuthorization();
 
-using (var scope = app.Services.CreateScope())
-{
-	var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+	app.MapControllers();
 
-	var users = userManager.Users.ToList();
+	app.MapGet("/security/getMessage", () => "Hello World!").RequireAuthorization();
 
-	foreach (var user in users)
-	{
-		if (userManager.GetRolesAsync(user).Result.Count == 0)
-		{
-			userManager.AddToRoleAsync(user, "Manager").Wait();
-		}
-	}
-}
-
-app.Run();
+	app.Run();

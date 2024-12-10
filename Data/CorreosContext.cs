@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
-public class CorreosContext : IdentityDbContext<ApplicationUser>
+public class CorreosContext : IdentityDbContext
 {
 	public CorreosContext (DbContextOptions<CorreosContext> options) : base(options)
 	{

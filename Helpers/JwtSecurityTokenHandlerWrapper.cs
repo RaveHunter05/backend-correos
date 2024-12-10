@@ -15,7 +15,7 @@ public class JwtSecurityTokenHandlerWrapper
         _jwtSecurityTokenHandler = new JwtSecurityTokenHandler();
     }
 // Generate a JWT token based on user ID and role
-    public string GenerateJwtToken(string userId, string role)
+    public string GenerateJwtToken(string userId, System.Collections.Generic.IList<string> role)
     {
         // Retrieve the JWT secret from environment variables and encode it
         var key = Encoding.ASCII.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET")!);
@@ -23,9 +23,12 @@ public class JwtSecurityTokenHandlerWrapper
         // Create claims for user identity and role
         var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, userId),
-                new Claim(ClaimTypes.Role, role)
+                new Claim(ClaimTypes.Name, userId),
             };
+
+	foreach(var userRole in role){
+		claims.Add(new Claim(ClaimTypes.Role, userRole));
+	}
 
         // Create an identity from the claims
         var identity = new ClaimsIdentity(claims);
@@ -41,7 +44,7 @@ public class JwtSecurityTokenHandlerWrapper
         };
 
         // Create a JWT security token
-        var token = _jwtSecurityTokenHandler.CreateJwtSecurityToken(tokenDescriptor);
+        var token = _jwtSecurityTokenHandler.CreateToken(tokenDescriptor);
 
         // Write the token as a string and return it
         return _jwtSecurityTokenHandler.WriteToken(token);

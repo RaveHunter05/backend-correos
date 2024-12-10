@@ -6,117 +6,152 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+using correos_backend.Attributes;
+
+using Microsoft.AspNetCore.Authorization;
+
+using correos_backend.Models.Enums;
+
 namespace correos_backend.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class BudgetsController : ControllerBase
-    {
-        private readonly CorreosContext _context;
+	[Route("api/[controller]")]
+	[ApiController]
+	public class BudgetsController : ControllerBase
+	{
+		private readonly CorreosContext _context;
 
-        public BudgetsController(CorreosContext context)
-        {
-            _context = context;
-        }
+		public BudgetsController(CorreosContext context)
+		{
+			_context = context;
+		}
 
-        // GET: api/Budgets
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Budget>>> GetBudgets()
-        {
-          if (_context.Budgets == null)
-          {
-              return NotFound();
-          }
-            return await _context.Budgets.ToListAsync();
-        }
+		// GET: api/Budgets
+		[HttpGet]
+		[JwtAuthorize("Boss", "User")]
+		public async Task<ActionResult<IEnumerable<Budget>>> GetBudgets()
+		{
+			if (_context.Budgets == null)
+			{
+				return NotFound();
+			}
 
-        // GET: api/Budgets/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Budget>> GetBudget(int id)
-        {
-          if (_context.Budgets == null)
-          {
-              return NotFound();
-          }
-            var budget = await _context.Budgets.FindAsync(id);
+			return  await _context.Budgets.Include(budget => budget.Comments).ToListAsync();
+		}
 
-            if (budget == null)
-            {
-                return NotFound();
-            }
+		// GET: api/Budgets/5
+		[HttpGet("{id}")]
+		public async Task<ActionResult<Budget>> GetBudget(int id)
+		{
+			if (_context.Budgets == null)
+			{
+				return NotFound();
+			}
+			var budget = await _context.Budgets.FindAsync(id);
 
-            return budget;
-        }
+			if (budget == null)
+			{
+				return NotFound();
+			}
 
-        // PUT: api/Budgets/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutBudget(int id, Budget budget)
-        {
-            if (id != budget.BudgetId)
-            {
-                return BadRequest();
-            }
+			return budget;
+		}
+		// GET: api/Budgets/search/names
+		[HttpGet("search/{title}")]
+		public async Task<IEnumerable<Budget>> SearchByName(string title)
+		{
+			IQueryable<Budget> query = _context.Budgets;
 
-            _context.Entry(budget).State = EntityState.Modified;
+			if (!string.IsNullOrEmpty(title))
+			{
+				query = query.Where(budget => budget.Title.Contains(title));
+			}
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!BudgetExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+			return await query.ToListAsync();
+		}
 
-            return NoContent();
-        }
+		// PUT: api/Budgets/5
+		// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+		[HttpPut("{id}")]
+		public async Task<IActionResult> PutBudget(int id, Budget budget)
+		{
+			if (id != budget.BudgetId)
+			{
+				return BadRequest();
+			}
 
-        // POST: api/Budgets
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Budget>> PostBudget(Budget budget)
-        {
-          if (_context.Budgets == null)
-          {
-              return Problem("Entity set 'CorreosContext.Budgets'  is null.");
-          }
-            _context.Budgets.Add(budget);
-            await _context.SaveChangesAsync();
+			_context.Entry(budget).State = EntityState.Modified;
 
-            return CreatedAtAction("GetBudget", new { id = budget.BudgetId }, budget);
-        }
+			try
+			{
+				await _context.SaveChangesAsync();
+			}
+			catch (DbUpdateConcurrencyException)
+			{
+				if (!BudgetExists(id))
+				{
+					return NotFound();
+				}
+				else
+				{
+					throw;
+				}
+			}
 
-        // DELETE: api/Budgets/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteBudget(int id)
-        {
-            if (_context.Budgets == null)
-            {
-                return NotFound();
-            }
-            var budget = await _context.Budgets.FindAsync(id);
-            if (budget == null)
-            {
-                return NotFound();
-            }
+			return NoContent();
+		}
 
-            _context.Budgets.Remove(budget);
-            await _context.SaveChangesAsync();
+		// POST: api/Budgets
+		// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+		[HttpPost]
+		public async Task<ActionResult<Budget>> PostBudget(Budget budget)
+		{
 
-            return NoContent();
-        }
+			if (_context.Budgets == null)
+			{
+				return Problem("Entity set 'CorreosContext.Budgets'  is null.");
+			}
 
-        private bool BudgetExists(int id)
-        {
-            return (_context.Budgets?.Any(e => e.BudgetId == id)).GetValueOrDefault();
-        }
-    }
+
+			if(budget.ApprovalStatus == null)
+			{
+				budget.ApprovalStatus = ApprovalStatus.Pending;
+			}
+			// @TODO: change later 
+			if (budget.CreatedById == null)
+			{
+				budget.CreatedById = "1";
+			}
+
+			// @TODO Add document link to the budget
+			_context.Budgets.Add(budget);
+			await _context.SaveChangesAsync();
+
+			return CreatedAtAction("GetBudget", new { id = budget.BudgetId }, budget);
+		}
+
+		// DELETE: api/Budgets/5
+		[HttpDelete("{id}")]
+		public async Task<IActionResult> DeleteBudget(int id)
+		{
+			if (_context.Budgets == null)
+			{
+				return NotFound();
+			}
+			var budget = await _context.Budgets.FindAsync(id);
+			if (budget == null)
+			{
+				return NotFound();
+			}
+
+			_context.Budgets.Remove(budget);
+			await _context.SaveChangesAsync();
+
+			return NoContent();
+		}
+
+		private bool BudgetExists(int id)
+		{
+			return (_context.Budgets?.Any(e => e.BudgetId == id)).GetValueOrDefault();
+		}
+	}
 }

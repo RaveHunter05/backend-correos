@@ -3,52 +3,85 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System.Security.Claims;
 
-namespace correos_backend.Decorators; // Replace with your project's namespace
+using correos_backend.Attributes; 
+
+namespace correos_backend.Decorators; 
 public class JwtAuthorizeFilter : IAuthorizationFilter
 {
     private readonly JwtSecurityTokenHandlerWrapper _jwtSecurityTokenHandler;
 
-    public JwtAuthorizeFilter(JwtSecurityTokenHandlerWrapper jwtSecurityTokenHandler){
+    public JwtAuthorizeFilter(JwtSecurityTokenHandlerWrapper jwtSecurityTokenHandler)
+    {
         _jwtSecurityTokenHandler = jwtSecurityTokenHandler;
     }
 
     public void OnAuthorization(AuthorizationFilterContext context)
     {
-        // Check if the [Authorize] attribute is explicitly applied to the action or controller.
-        var hasAuthorizeAttribute = context.ActionDescriptor.EndpointMetadata
-            .Any(em => em is AuthorizeAttribute);
+        // Excluir rutas públicas
+        var endpoint = context.ActionDescriptor.EndpointMetadata
+            .OfType<AllowAnonymousAttribute>().Any();
+        
+        if (endpoint) return;
 
-	// no llega hasta aquí
-    	Console.BackgroundColor = ConsoleColor.DarkGreen;
-	Console.WriteLine("Authorize Attribute: " + hasAuthorizeAttribute);
-
-        if (hasAuthorizeAttribute)
+        var authHeader = context.HttpContext.Request.Headers["Authorization"].ToString();
+        
+        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
         {
-            var token = context.HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            context.Result = new UnauthorizedResult();
+            return;
+        }
 
-            if (!string.IsNullOrEmpty(token))
+        var token = authHeader.Replace("Bearer ", "").Trim();
+
+        try
+        {
+            var claimsPrincipal = _jwtSecurityTokenHandler.ValidateJwtToken(token);
+            var userId = claimsPrincipal.FindFirst(ClaimTypes.Name)?.Value;
+            var roles = claimsPrincipal.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+
+            context.HttpContext.Items["UserId"] = userId;
+            context.HttpContext.Items["Roles"] = roles;
+
+            Console.WriteLine($"User ID: {userId}");
+            Console.WriteLine($"Roles: {string.Join(",", roles)}");
+
+            // Verificar roles y políticas
+            var authorizeAttributes = context.ActionDescriptor.EndpointMetadata
+                .OfType<JwtAuthorizeAttribute>();
+
+            foreach (var attribute in authorizeAttributes)
             {
-                try
+                if (attribute.Roles != null && !attribute.Roles.Any(role => roles.Contains(role)))
                 {
-                    // Validate the token and extract claims
-                    var claimsPrincipal = _jwtSecurityTokenHandler.ValidateJwtToken(token);
-
-                    // Extract the user ID from the token
-                    var userId = claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                    context.HttpContext.Items["UserId"] = userId;
+                    context.Result = new ForbidResult(); 
+                    return;
                 }
-                catch (Exception)
+
+                if (!string.IsNullOrEmpty(attribute.Policy))
                 {
-			Console.BackgroundColor = ConsoleColor.DarkRed;
-			Console.WriteLine("User Unauthorized");
-                    context.Result = new UnauthorizedResult();
+                    // Valida la política aquí según tu lógica
+                    if (!ValidatePolicy(attribute.Policy, claimsPrincipal))
+                    {
+                        context.Result = new ForbidResult();
+                        return;
+                    }
                 }
             }
-            else
-            {
-                context.Result = new UnauthorizedResult();
-            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al validar el token: {ex.Message}");
+            context.Result = new UnauthorizedResult();
         }
     }
 
+    private bool ValidatePolicy(string policy, ClaimsPrincipal claimsPrincipal)
+    {
+        // Implementa la lógica de validación de políticas
+        if (policy == "AdminOnly")
+        {
+            return claimsPrincipal.IsInRole("Admin");
+        }
+        return false;
+    }
 }

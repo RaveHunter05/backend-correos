@@ -11,8 +11,8 @@ public class Budget
 	public string Title {get; set;}
 	public string Description {get; set;}
 
-	// select status between "Draft", "Approved", "Rejected"
-	public ApprovalStatus ApprovalStatus {get; set;}
+	// select status between "Pending", "Approved", "Rejected"
+	public ApprovalStatus? ApprovalStatus {get; set;}
 
 	public string FileName {get; set;}
 	public string FileUrl {get; set;}
@@ -24,7 +24,7 @@ public class Budget
 
 
 	// keys
-	public string CreatedById {get; set;}
+	public string? CreatedById {get; set;}
 
 	public ICollection<Comment> Comments {get;} = new List<Comment>();
 
