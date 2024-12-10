@@ -9,13 +9,13 @@ namespace correos_backend.Controllers;
 [ApiController]
 public class AuthenticateController : ControllerBase
 {
-	private readonly UserManager<ApplicationUser> _userManager;
+	private readonly UserManager<IdentityUser> _userManager;
 	private readonly RoleManager<IdentityRole> _roleManager;
-	private readonly SignInManager<ApplicationUser> _signInManager;
+	private readonly SignInManager<IdentityUser> _signInManager;
 	private readonly IConfiguration _configuration;
 	private readonly JwtSecurityTokenHandlerWrapper _jwtHelper;
 
-	public AuthenticateController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, JwtSecurityTokenHandlerWrapper jwtHelper)
+	public AuthenticateController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, SignInManager<IdentityUser> signInManager, IConfiguration configuration, JwtSecurityTokenHandlerWrapper jwtHelper)
 	{
 		_userManager = userManager;
 		_roleManager = roleManager;
@@ -25,6 +25,7 @@ public class AuthenticateController : ControllerBase
 	}
 
 	[HttpPost]
+	[AllowAnonymous]
 	[Route("login")]
 	public async Task<IActionResult> Login([FromBody] LoginModel model)
 	{
@@ -36,7 +37,8 @@ public class AuthenticateController : ControllerBase
 			{
 				var user = await _userManager.FindByNameAsync(model.Username);
 				var roles = await _userManager.GetRolesAsync(user);
-				var token = _jwtHelper.GenerateJwtToken(user.Id, roles.ToString());
+
+				var token = _jwtHelper.GenerateJwtToken(user.Id, roles);
 				return Ok(new { token, user, roles });
 			}
 			return Unauthorized();
@@ -52,7 +54,7 @@ public class AuthenticateController : ControllerBase
 		if (!ModelState.IsValid)
 			return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User already exists!" });
 
-		ApplicationUser user = new ApplicationUser()
+		IdentityUser user = new IdentityUser()
 		{
 			Email = model.Email,
 		      	SecurityStamp = Guid.NewGuid().ToString(),
