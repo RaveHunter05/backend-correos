@@ -53,3 +53,4 @@ project.lock.json
 */project.lock.json
 */project.assets.json
 *.userprefs
+.env
